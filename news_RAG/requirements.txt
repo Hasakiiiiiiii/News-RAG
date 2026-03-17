@@ -1,0 +1,10 @@
+scrapy
+newspaper3k
+kafka-python
+beautifulsoup4
+psycopg2-binary
+fastapi
+uvicorn
+pymongo
+lxml_html_clean
+confluent-kafka
