@@ -21,16 +21,14 @@ Hệ thống gồm: Scrapy spider, pipeline Kafka, consumer PostgreSQL, Docker C
 ##  Chuẩn bị & chạy
 ### 1) Cài dependencies Python
 ```bash
-cd news_RAG
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+make setup
 ```
 
 ### 2) Khởi động Docker Compose
 ```bash
-docker compose up -d
+make up
+make down #Nếu muốn tắt
+make reset #Để reset docker
 ```
 
 ### 3) Tạo bảng PostgreSQL (chỉ lần đầu)
