@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# --- CẤU HÌNH KẾT NỐI ---
 DB_CONFIG = {
     "dbname": "news_rag",
     "user": "tuan",
@@ -13,7 +12,6 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# ----- HÀM HỖ TRỢ LÀM SẠCH DỮ LIỆU TRONG BƯỚC TRANFORM -----   
 def clean_text(text):
     if not text: return ""
     text = re.sub(r'\s+', ' ', text) 
@@ -25,9 +23,7 @@ def clean_text(text):
         text = re.sub(pattern, "", text, flags=re.IGNORECASE)
     return text.strip()
 
-# ----- HÀM KHỞI TẠO TỰ ĐỘNG CẤU TRÚC BẢNG WAREHOUSE -----
 def init_warehouse_schema(cur, conn):
-    """Đọc file SQL và khởi tạo cấu trúc bảng nếu chưa có"""
     try:
         print("[*] Đang kiểm tra và cập nhật cấu trúc Warehouse từ warehouse.sql...")
         with open('warehouse.sql', 'r', encoding='utf-8') as f:
@@ -47,24 +43,37 @@ def run_etl_warehouse():
         cur = conn.cursor()
 
         init_warehouse_schema(cur, conn)
+        
         # KHỞI TẠO HỆ THỐNG (SYSTEM INIT) 
-        print("[*] Đang kiểm tra và khởi tại các bản ghi mặc định (ID 0)...")
+        print("[*] Đang kiểm tra và khởi tạo các bản ghi mặc định (ID 0)...")
         try:
-            cur.execute("SELECT setval('dim_time_time_id_seq', COALESCE((SELECT MAX(time_id) FROM dim_time), 0), true)")
-            cur.execute("SELECT setval('dim_author_author_id_seq', COALESCE((SELECT MAX(author_id) FROM dim_author), 0), true)")
+            # 1. Bơm lại bản ghi ID = 0 làm "phao cứu sinh" cho dữ liệu khuyết
+            cur.execute("""
+                INSERT INTO dim_time (time_id, date, day, month, year) 
+                SELECT 0, '1900-01-01', 1, 1, 1900 
+                WHERE NOT EXISTS (SELECT 1 FROM dim_time WHERE time_id = 0);
+            """)
+            
+            cur.execute("""
+                INSERT INTO dim_author (author_id, author_name) 
+                SELECT 0, 'Unknown' 
+                WHERE NOT EXISTS (SELECT 1 FROM dim_author WHERE author_id = 0);
+            """)
+            
+            # 2. Reset Sequence an toàn (Tránh lỗi đếm ID nếu bảng chỉ có mỗi ID 0)
+            cur.execute("SELECT setval('dim_time_time_id_seq', GREATEST((SELECT MAX(time_id) FROM dim_time), 1));")
+            cur.execute("SELECT setval('dim_author_author_id_seq', GREATEST((SELECT MAX(author_id) FROM dim_author), 1));")
+            
             conn.commit()
         except Exception as e:
             conn.rollback()
-            print(f"[!] Cảnh báo Sync Sequence: {e}")
+            print(f"[!] Cảnh báo System Init: {e}")
 
-        # Khởi tạo cấu hình cho 1 chunk gồm size = 800 ký tự, overlap = 150 ký tự, và các separator ưu tiên để tách.
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=800, chunk_overlap=150,
             separators=["\n\n", "\n", ".", " ", ""]
         )
 
-        # ----- 1. EXTRACT ------
-        # Lấy tất cả dữ liệu từ bảng article_metadata
         cur.execute("SELECT url_hash, title, content, url FROM article_metadata")
         rows = cur.fetchall()
         if not rows:
@@ -74,18 +83,11 @@ def run_etl_warehouse():
         for url_hash, title, content_raw, url in rows:
             try:
                 data = content_raw if isinstance(content_raw, dict) else json.loads(content_raw)
-                raw_authors = data.get('author', 'Unknown')
-                p_date_str = data.get('publish_date', 'Unknown')
-                if not raw_authors or raw_authors == "Unknown" or not p_date_str or p_date_str == "Unknown":
-                    print(f"[SKIP] Thiếu tác giả hoặc ngày tháng: {title[:30]}...")
-                    continue
                 
-                # ----- 2. TRANSFORM -----
-                # Làm sạch content - chỉ xử lý xuống dòng, khoảng trắng thừa và các pattern rác. Ảnh thừa và link lạ đã được loại bỏ ở spider.py.
-                # Chia content thành các chunk nhỏ hơn.
+                # --- ĐÃ XÓA KHỐI LỆNH SKIP Ở ĐÂY ĐỂ TRÁNH RƠI RỚT DỮ LIỆU ---
+
                 cleaned_text = clean_text(data.get('content', ''))
                 
-                # Tách tên tác giả nếu có nhiều hơn một người, trường hợp không có thì để "Unknown"
                 raw_authors = data.get('author', 'Unknown')
                 if not raw_authors or raw_authors == "Unknown":
                     author_list = ["Unknown"]
@@ -94,7 +96,6 @@ def run_etl_warehouse():
                 else:
                     author_list = raw_authors
 
-                # --- LOAD DIM_SOURCE ---
                 domain = url.split('/')[2] if '//' in url else url
                 cur.execute("""
                     INSERT INTO dim_source (domain) VALUES (%s) 
@@ -103,7 +104,6 @@ def run_etl_warehouse():
                 """, (domain,))
                 source_id = cur.fetchone()[0]
 
-                # --- LOAD DIM_TIME ---
                 p_date_str = data.get('publish_date', 'Unknown')
                 time_id = 0 
                 if p_date_str != "Unknown" and p_date_str:
@@ -117,7 +117,6 @@ def run_etl_warehouse():
                         time_id = cur.fetchone()[0]
                     except: time_id = 0
 
-                # --- LOAD DIM_CONTENT ---
                 cur.execute("""
                     INSERT INTO dim_content (url_hash, content) 
                     VALUES (%s, %s) ON CONFLICT (url_hash) 
@@ -125,7 +124,6 @@ def run_etl_warehouse():
                 """, (url_hash, cleaned_text))
                 content_id = cur.fetchone()[0]
 
-                # --- LOAD FACT_ARTICLES ---
                 cur.execute("""
                     INSERT INTO fact_articles (url_hash, title, source_id, time_id, content_id, content_length)
                     VALUES (%s, %s, %s, %s, %s, %s) 
@@ -134,7 +132,6 @@ def run_etl_warehouse():
                 """, (url_hash, title, source_id, time_id, content_id, len(cleaned_text)))
                 article_id = cur.fetchone()[0]
 
-                # --- LOAD FACT_ARTICLE_AUTHORS ---
                 cur.execute("DELETE FROM fact_article_authors WHERE article_id = %s", (article_id,))
                 for name in author_list:
                     curr_auth_id = 0
@@ -148,11 +145,9 @@ def run_etl_warehouse():
                     
                     cur.execute("INSERT INTO fact_article_authors (article_id, author_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (article_id, curr_auth_id))
 
-                # --- LOAD FACT_CHUNKS ---
                 cur.execute("DELETE FROM fact_chunks WHERE article_id = %s", (article_id,))
-                chunks = text_splitter.split_text(cleaned_text) # Tách chunk
+                chunks = text_splitter.split_text(cleaned_text)
                 for i, chunk_text in enumerate(chunks):
-                    # Loại bỏ các ký tự lạ ở đầu chunk
                     clean_chunk = chunk_text.lstrip('. ,!?\n\t')
                     if clean_chunk:
                         cur.execute("INSERT INTO fact_chunks (article_id, chunk_index, content) VALUES (%s, %s, %s)", (article_id, i, clean_chunk))

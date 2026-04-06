@@ -18,16 +18,16 @@ def get_postgres_conn():
 # Kafka config
 conf = {
     'bootstrap.servers': 'localhost:9092',
-    'group.id': 'news_rag_group_oithoichec', # Đổi tên group ở đây
+    'group.id': 'news_rag_group_oithoichec', 
     'auto.offset.reset': 'earliest'
 }
 
-consumer = Consumer(conf)
-consumer.subscribe(['news_raw'])
-
-
 def start_processing():
-    print(" [Consumer] Đang chạy pipeline PostgreSQL-only...")
+    print(" [Consumer] Đang khởi tạo kết nối Kafka và DB...")
+    
+    # BƯỚC NGOẶT: Khởi tạo Consumer bên TRONG tiến trình con
+    consumer = Consumer(conf)
+    consumer.subscribe(['news_raw'])
     
     # Khởi tạo kết nối ban đầu
     pg_conn = get_postgres_conn()
@@ -36,7 +36,6 @@ def start_processing():
         while True:
             msg = consumer.poll(1.0)
             if msg is None:
-                # Đừng print liên tục ở đây để tránh trôi log của Spider
                 continue
 
             if msg.error():
@@ -52,26 +51,23 @@ def start_processing():
                 title = data.get('title', 'Unknown Title')
                 author = data.get('author', 'Unknown')
                 publish_date = data.get('publish_date', None)
-                content = data.get('content', '') # Lấy content riêng ra
 
                 if not url: continue
 
                 url_hash = hashlib.sha256(url.encode()).hexdigest()
 
                 with pg_conn.cursor() as cursor:
-                    # Logic chuẩn: INSERT hoặc bỏ qua, không cần RETURNING phức tạp
+                    # Truyền thẳng raw_data vào cột content
                     cursor.execute("""
                         INSERT INTO article_metadata (url_hash, url, title, content, author, publish_date)
                         VALUES (%s, %s, %s, %s, %s, %s)
                         ON CONFLICT (url_hash) DO NOTHING;
-                    """, (url_hash, url, title, content, author, publish_date))
+                    """, (url_hash, url, title, raw_data, author, publish_date))
                 
-                # Commit ngay lập tức cho từng bài để đảm bảo an toàn dữ liệu
                 pg_conn.commit()
                 print(f"[SUCCESS] {title[:50]}...")
 
             except psycopg2.InterfaceError:
-                # Nếu kết nối DB bị đứt, hãy thử kết nối lại thay vì sập luôn
                 print("[DB] Mất kết nối, đang thử kết nối lại...")
                 pg_conn = get_postgres_conn()
             except Exception as e:
@@ -83,7 +79,6 @@ def start_processing():
     finally:
         consumer.close()
         if pg_conn: pg_conn.close()
-
 
 if __name__ == "__main__":
     start_processing()

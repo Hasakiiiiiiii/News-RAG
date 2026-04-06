@@ -61,6 +61,14 @@ python etl_warehouse.py
 docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "SELECT f.title, STRING_AGG(a.author_name, ' & ') as authors FROM fact_articles f JOIN fact_article_authors faa ON f.article_id = faa.article_id JOIN dim_author a ON faa.author_id = a.author_id GROUP BY f.article_id, f.title LIMIT 20;"
 #kiểm tra danh sách chunk của bài báo đầu
 docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "SELECT chunk_index, LEFT(content, 800) FROM fact_chunks WHERE article_id = (SELECT MIN(article_id) FROM fact_articles) ORDER BY chunk_index;"
+# Kiểm tra khối lượng và chất lượng chunks
+docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "SELECT (SELECT COUNT(*) FROM fact_articles) AS bai_bao_da_xu_ly, (SELECT COUNT(*) FROM fact_chunks) AS tong_so_chunks, ROUND((SELECT COUNT(*) FROM fact_chunks)::numeric / (SELECT COUNT(*) FROM fact_articles), 2) AS chunks_trung_binh;"
+# Kiểm tra time của articles
+docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "SELECT year, month, COUNT(*) FROM dim_time JOIN fact_articles ON dim_time.time_id = fact_articles.time_id GROUP BY year, month ORDER BY year DESC;"
+# reset kho dữ liệu
+docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "TRUNCATE TABLE article_metadata, dim_source, dim_time, dim_author, dim_content, fact_articles, fact_article_authors, fact_chunks RESTART IDENTITY CASCADE;"
+# Kiểm tra đường link của các bên bị lỗi ngày
+docker exec -it postgres_news_rag psql -U tuan -d news_rag -c "SELECT title, url FROM article_metadata WHERE publish_date = 'Unknown' LIMIT 10;"
 #vâng vâng mây mây...
 ```
 
