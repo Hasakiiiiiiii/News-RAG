@@ -40,6 +40,11 @@ crawl:
 consume:
 	$(PYTHON) consumer/consumer.py
 
+vectorize:
+	$(PYTHON) vectorize.py
+
+reset_qdrant:
+	$(PYTHON) reset_qdrant.py
 # Tiện ích
 db-count:
 	@echo "[DATABASE] Số lượng bài báo trong PostgreSQL:"
