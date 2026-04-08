@@ -6,12 +6,12 @@ from qdrant_client.models import VectorParams, Distance, PointStruct
 
 # --- 1. CẤU HÌNH KẾT NỐI ---
 PG_CONFIG = {
-    "dbname": "news_rag",
-    "user": "newsrag",
-    "password": "newsrag",
-    "host": "localhost",
-    "port": 5432
+    "dbname": "postgres",
+    "user": "tuantran",
+    "password": "tuantran",
+    "host": "news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com"
 }
+
 
 QDRANT_URL = "http://localhost:6333"
 COLLECTION_NAME = "news_chunks"

@@ -58,7 +58,7 @@ make down #Nếu muốn tắt
 make reset #Để reset docker
 ```
 
-### 3) Tạo bảng PostgreSQL (chỉ lần đầu)
+### 3) Tạo bảng PostgreSQL (không cần nữa nhưng mà t lười xóa ai rảnh thì xóa hộ với)
 ```bash
 docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "CREATE TABLE IF NOT EXISTS article_metadata (url_hash text PRIMARY KEY, url text, title text, content jsonb, author text, publish_date text);"
 ```
@@ -67,10 +67,10 @@ docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "CREATE TABLE I
 ```bash
 make main
 ```
-
+với
 ### 5) Kiểm tra dữ liệu PostgreSQL
 ```bash
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT url, title FROM article_metadata LIMIT 5;" 
+python init_db/test_db.py" 
 ```
 
 ### 6) ETL dữ liệu nạp vào schema
@@ -80,19 +80,7 @@ make etl
 
 ### 7) Kiểm tra dữ liệu trong schema
 ```bash
-#kiểm tra bài báo & tác giả 
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT f.title, STRING_AGG(a.author_name, ' & ') as authors FROM fact_articles f JOIN fact_article_authors faa ON f.article_id = faa.article_id JOIN dim_author a ON faa.author_id = a.author_id GROUP BY f.article_id, f.title LIMIT 20;"
-#kiểm tra danh sách chunk của bài báo đầu
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT chunk_index, LEFT(content, 800) FROM fact_chunks WHERE article_id = (SELECT MIN(article_id) FROM fact_articles) ORDER BY chunk_index;"
-# Kiểm tra khối lượng và chất lượng chunks
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT (SELECT COUNT(*) FROM fact_articles) AS bai_bao_da_xu_ly, (SELECT COUNT(*) FROM fact_chunks) AS tong_so_chunks, ROUND((SELECT COUNT(*) FROM fact_chunks)::numeric / (SELECT COUNT(*) FROM fact_articles), 2) AS chunks_trung_binh;"
-# Kiểm tra time của articles
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT year, month, COUNT(*) FROM dim_time JOIN fact_articles ON dim_time.time_id = fact_articles.time_id GROUP BY year, month ORDER BY year DESC;"
-# reset kho dữ liệu
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "TRUNCATE TABLE article_metadata, dim_source, dim_time, dim_author, dim_content, fact_articles, fact_article_authors, fact_chunks RESTART IDENTITY CASCADE;"
-# Kiểm tra đường link của các bên bị lỗi ngày
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "SELECT title, url FROM article_metadata WHERE publish_date = 'Unknown' LIMIT 10;"
-#vâng vâng mây mây...
+streamlit run app/dashboard.py
 ```
 
 ### 8) Nhúng Vector và đẩy lên Qdrant (Vectorize)

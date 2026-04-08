@@ -30,17 +30,17 @@ services:
         - MONGO_INITDB_ROOT_PASSWORD=newsrag
       volumes:
         - ./data/mongo_data:/data/db
-  postgres:
-    image: ankane/pgvector:latest # Bản có sẵn vector search
-    container_name: postgres_news_rag
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=newsrag
-      - POSTGRES_PASSWORD=newsrag
-      - POSTGRES_DB=news_rag
-    volumes:
-      - ./data/postgres_data:/var/lib/postgresql/data
+  # postgres:
+  #   image: ankane/pgvector:latest # Bản có sẵn vector search
+  #   container_name: postgres_news_rag
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=newsrag
+  #     - POSTGRES_PASSWORD=newsrag
+  #     - POSTGRES_DB=news_rag
+  #   volumes:
+  #     - ./data/postgres_data:/var/lib/postgresql/data
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant_news_rag

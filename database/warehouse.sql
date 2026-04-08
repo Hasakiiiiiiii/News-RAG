@@ -1,3 +1,4 @@
+-- Active: 1775662911578@@news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com@5432@news_rag
 ----- DIM TABLE -----
 CREATE TABLE IF NOT EXISTS dim_source (
     source_id SERIAL PRIMARY KEY,

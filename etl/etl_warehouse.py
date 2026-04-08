@@ -5,12 +5,12 @@ from datetime import datetime
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 DB_CONFIG = {
-    "dbname": "news_rag",
-    "user": "newsrag",
-    "password": "newsrag",
-    "host": "localhost",
-    "port": 5432
+    "dbname": "postgres",
+    "user": "tuantran",
+    "password": "tuantran",
+    "host": "news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com"
 }
+
 
 def clean_text(text):
     if not text: return ""
