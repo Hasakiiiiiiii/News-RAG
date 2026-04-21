@@ -1,21 +1,31 @@
+import os
 import psycopg2
 import uuid
+import time
+from datetime import datetime
+from dotenv import load_dotenv
 from FlagEmbedding import BGEM3FlagModel 
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams, SparseVector
 
-# --- 1. CẤU HÌNH KẾT NỐI ---
+# --- ĐỊNH VỊ CHÍNH XÁC FILE .ENV ---
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, '.env')
+load_dotenv(dotenv_path)
+
+# --- 1. CẤU HÌNH KẾT NỐI POSTGRESQL (Lấy từ .env) ---
 PG_CONFIG = {
-    "dbname": "postgres",
-    "user": "tuantran",
-    "password": "tuantran",
-    "host": "news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com"
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT", 5432)) # Ép kiểu số nguyên cho chắc chắn
 }
 
-# --- CẤU HÌNH QDRANT CLOUD ---
-QDRANT_URL = "https://1dbe8b30-05be-452b-8ae6-bd3d0d18464c.us-west-2-0.aws.cloud.qdrant.io"
-QDRANT_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6ZTY1YzEwZDMtYmRlZi00MjkzLTllNzgtNGI0ZThiOWRjNTMyIn0.PXfxHDR-w_64a_0HdP9Mw3KHZbGmC59F_DG4VJoCezE"
-COLLECTION_NAME = "news_chunks" 
+# --- 2. CẤU HÌNH QDRANT CLOUD (Lấy từ .env) ---
+QDRANT_HOST = os.getenv("QDRANT_HOST")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
 
 def generate_uuid(article_id, chunk_index):
     """Tạo một UUID cố định vĩnh viễn dựa trên article_id và chunk_index"""
@@ -26,8 +36,9 @@ def run_vectorization():
     print("[*] Đang tải mô hình BAAI/bge-m3 (Phiên bản Hybrid)...")
     model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True) 
     
+    # Kết nối lên Qdrant Cloud
     qdrant = QdrantClient(
-        url=QDRANT_URL,
+        url=f"https://{QDRANT_HOST}", 
         api_key=QDRANT_API_KEY
     )
     
@@ -46,16 +57,28 @@ def run_vectorization():
     else:
         print(f"[*] Collection '{COLLECTION_NAME}' đã tồn tại.")
 
+    # Khởi tạo biến rỗng để tránh lỗi UnboundLocalError
+    conn = None
+    cur = None
+
     try:
         conn = psycopg2.connect(**PG_CONFIG)
         cur = conn.cursor()
 
-        print("[*] Đang truy xuất toàn bộ chunks từ PostgreSQL...")
+        print("[*] Đang truy xuất toàn bộ chunks từ PostgreSQL (Kèm Metadata)...")
+        # [CẬP NHẬT] JOIN thêm thời gian và tác giả
         query = """
-            SELECT c.article_id, c.chunk_index, c.content, a.title, m.url 
+            SELECT 
+                c.article_id, c.chunk_index, c.content, a.title, m.url,
+                COALESCE(t.date::text, 'Unknown') as publish_date,
+                COALESCE(string_agg(DISTINCT au.author_name, ', '), 'Unknown') as authors
             FROM fact_chunks c 
             JOIN fact_articles a ON c.article_id = a.article_id
             JOIN article_metadata m ON a.url_hash = m.url_hash
+            LEFT JOIN dim_time t ON a.time_id = t.time_id
+            LEFT JOIN fact_article_authors faa ON a.article_id = faa.article_id
+            LEFT JOIN dim_author au ON faa.author_id = au.author_id
+            GROUP BY c.article_id, c.chunk_index, c.content, a.title, m.url, t.date
         """
         cur.execute(query)
         all_chunks = cur.fetchall()
@@ -67,49 +90,55 @@ def run_vectorization():
         print("[*] Đang đối chiếu với Qdrant để tìm các chunks mới...")
         chunks_to_process = []
         
-        # Lọc Incremental Load bằng UUID
+        # Lọc Incremental Load
         for row in all_chunks:
-            article_id, chunk_index, content, title, url = row
+            article_id, chunk_index, content, title, url, publish_date, authors = row
             point_id = generate_uuid(article_id, chunk_index)
             
             try:
                 result = qdrant.retrieve(collection_name=COLLECTION_NAME, ids=[point_id])
                 if not result:
-                    chunks_to_process.append((point_id, article_id, chunk_index, content, title, url))
+                    chunks_to_process.append(row) # Đưa toàn bộ row vào danh sách
             except Exception:
-                chunks_to_process.append((point_id, article_id, chunk_index, content, title, url))
+                chunks_to_process.append(row)
 
         total_new_chunks = len(chunks_to_process)
         if total_new_chunks == 0:
             print("[SUCCESS] Dữ liệu Hybrid trên Qdrant đã Up-to-date!")
             return
 
-        print(f"[*] Bắt đầu Vector hóa Hybrid và đẩy {total_new_chunks} chunks MỚI lên Qdrant...")
+        print(f"[*] Bắt đầu Vector hóa và đẩy {total_new_chunks} chunks MỚI lên Qdrant...")
 
         points = []
         for idx, row in enumerate(chunks_to_process):
-            point_id, article_id, chunk_index, content, title, url = row
+            article_id, chunk_index, content, title, url, publish_date, authors = row
+            point_id = generate_uuid(article_id, chunk_index)
             
-            # Yêu cầu model sinh ra cả 2 loại vector
+            # --- 1. BIẾN ĐỔI THỜI GIAN THÀNH TIMESTAMP ---
+            timestamp = 0
+            if publish_date and publish_date != 'Unknown':
+                try:
+                    date_str = str(publish_date)[:10] 
+                    dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    timestamp = int(time.mktime(dt_obj.timetuple()))
+                except Exception:
+                    timestamp = 0
+
+            # --- 2. VECTOR HÓA BẰNG MÔ HÌNH ---
             output = model.encode([content], return_dense=True, return_sparse=True)
             
-            # 1. Bóc tách Vector Ngữ nghĩa (Dense - 1024 chiều)
+            # Bóc tách Dense Vector
             dense_vec = output['dense_vecs'][0].tolist()
             
-            # 2. Bóc tách Vector Từ khóa (Sparse - Trọng số BM25)
+            # Bóc tách và Lọc Sparse Vector (Max Pooling)
             lexical_dict = output['lexical_weights'][0]
-            
-            # Lọc ID trùng lặp và giữ trọng số lớn nhất (Max pooling)
             sparse_dict = {}
             for token_str, weight in lexical_dict.items():
                 token_id = model.tokenizer.convert_tokens_to_ids(token_str)
-                
-                # Tránh trường hợp Tokenizer trả về mảng rỗng hoặc list
                 if isinstance(token_id, list):
                     if not token_id: continue
                     token_id = token_id[0]
                 
-                # Ép kiểu rõ ràng để Qdrant không báo lỗi JSON
                 token_id = int(token_id)
                 weight = float(weight)
                 
@@ -121,7 +150,7 @@ def run_vectorization():
             token_ids = list(sparse_dict.keys())
             weights = list(sparse_dict.values())
             
-            # 3. Tạo Point để đẩy lên Qdrant
+            # --- 3. ĐÓNG GÓI POINT LÊN QDRANT ---
             point = PointStruct(
                 id=point_id, 
                 vector={
@@ -133,7 +162,9 @@ def run_vectorization():
                     "chunk_index": chunk_index,
                     "title": title,
                     "url": url,
-                    "content": content
+                    "content": content,
+                    "authors": authors,
+                    "publish_timestamp": timestamp # Dùng Timestamp để AI nhạy cảm với thời gian
                 }
             )
             points.append(point)

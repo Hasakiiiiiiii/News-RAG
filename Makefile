@@ -8,7 +8,7 @@ PYTEST = pytest
 
 # --- LỆNH CHÍNH ---
 
-.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek
+.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline
 
 # Khởi tạo môi trường lần đầu
 setup:
@@ -76,7 +76,7 @@ test-gen:
 
 test-pipeline:
 	@echo "[*] Đang kiểm tra Pipeline API..."
-	PYTHONPATH=. $(PYTHON) -m tests.search.test_pipeline
+	PYTHONPATH=. $(PYTHON) -m tests.search.test_engine
 
 test-interactive:
 	@echo "[*] Đang kiểm tra..."
