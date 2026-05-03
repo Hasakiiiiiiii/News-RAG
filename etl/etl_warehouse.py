@@ -38,7 +38,7 @@ def init_warehouse_schema(cur, conn):
             conn.commit()
             print("[SUCCESS] Đã nạp cấu trúc Warehouse thành công.")
     except FileNotFoundError:
-        print("[ERROR] Không tìm thấy file warehouse.sql. Hãy đảm bảo file nằm cùng thư mục.")
+        print("[ERROR] Không tìm thấy file warehouse.sql. Hãy đảm bảo file nằm đúng đường dẫn.")
     except Exception as e:
         conn.rollback()
         print(f"[ERROR] Lỗi khi nạp warehouse.sql: {e}")
