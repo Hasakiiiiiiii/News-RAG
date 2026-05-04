@@ -84,3 +84,39 @@ test-interactive:
 
 eval:
 	$(PYTHON) evaluation/ragas_evaluation.py
+
+run-fastapi:
+	uvicorn app.api:app --reload
+
+run-frontend:
+	cd app/frontend && npm install && npm run dev
+
+run-backend: run-fastapi
+
+setup-frontend:
+	cd app/frontend && npm install
+
+# --- BIẾN BỔ SUNG ---
+NPM = cd app/frontend && npm
+
+# --- LỆNH TỰ ĐỘNG HÓA ---
+
+# Setup toàn diện: Cả Python venv và Frontend Node Modules
+full-setup: setup setup-frontend
+	@echo "[SUCCESS] Đã cài đặt xong toàn bộ Backend và Frontend."
+
+# Khởi chạy tất cả dịch vụ Docker và Backend/Frontend song song
+dev: up
+	@echo "[DEV] Đang khởi chạy hệ thống..."
+	# Sử dụng dấu & để chạy ngầm FastAPI và khởi chạy Frontend ở foreground
+	PYTHONPATH=. $(PYTHON) -m uvicorn app.api:app --reload & \
+	$(NPM) run dev
+
+# Nếu bạn muốn dùng tmux (khuyên dùng trên Linux) để quản lý nhiều cửa sổ
+tmux-run:
+	tmux new-session -d -s news_rag 'make run-backend'
+	tmux split-window -h -t news_rag 'make run-frontend'
+	tmux attach -t news_rag
+
+# Lệnh "All-in-one" cho người mới hoặc khi reset máy
+init-and-run: full-setup up dev

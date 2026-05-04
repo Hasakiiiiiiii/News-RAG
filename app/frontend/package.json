@@ -1,0 +1,17 @@
+{
+  "name": "news-rag-frontend",
+  "version": "1.0.0",
+  "description": "Simple frontend for News RAG system",
+  "main": "index.html",
+  "scripts": {
+    "dev": "live-server --port=3000 --host=0.0.0.0",
+    "start": "live-server --port=3000 --host=0.0.0.0 --open=/",
+    "build": "echo 'No build step required for simple HTML'"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "keywords": ["news", "rag", "frontend"],
+  "author": "",
+  "license": "MIT"
+}
