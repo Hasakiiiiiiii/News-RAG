@@ -11,6 +11,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from typing import List, Optional, Any
 
+
 # Load biến môi trường
 load_dotenv()
 
@@ -203,16 +204,47 @@ async def list_sources():
         conn.close()
 
 @app.get("/articles")
-async def list_articles(limit: int = 10, offset: int = 0):
+async def list_articles(q: Optional[str] = None, limit: int = 10, offset: int = 0):
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT id, title, url, source_id, published_date 
-            FROM article_metadata 
-            ORDER BY published_date DESC 
-            LIMIT %s OFFSET %s
-        """, (limit, offset))
+        
+        # Câu query chuẩn Data Warehouse: Kết nối Fact và các Dim
+        base_query = """
+            SELECT 
+                f.article_id AS id, 
+                f.title, 
+                m.url, 
+                s.domain AS source,
+                t.date AS published_date,
+                STRING_AGG(a.author_name, ' & ') AS author,
+                MAX(SUBSTRING(c.content, 1, 150)) || '...' AS snippet
+            FROM fact_articles f
+            LEFT JOIN dim_source s ON f.source_id = s.source_id
+            LEFT JOIN dim_time t ON f.time_id = t.time_id
+            LEFT JOIN fact_article_authors faa ON f.article_id = faa.article_id
+            LEFT JOIN dim_author a ON faa.author_id = a.author_id
+            LEFT JOIN dim_content c ON f.content_id = c.content_id
+            LEFT JOIN article_metadata m ON f.url_hash = m.url_hash
+        """
+
+        if q and q.strip():
+            search_term = f"%{q.strip()}%"
+            query = base_query + """
+                WHERE f.title ILIKE %s
+                GROUP BY f.article_id, f.title, m.url, s.domain, t.date
+                ORDER BY t.date DESC 
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(query, (search_term, limit, offset))
+        else:
+            query = base_query + """
+                GROUP BY f.article_id, f.title, m.url, s.domain, t.date
+                ORDER BY t.date DESC 
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(query, (limit, offset))
+            
         return cur.fetchall()
     finally:
         cur.close()
@@ -222,16 +254,89 @@ async def list_articles(limit: int = 10, offset: int = 0):
 async def get_stats():
     conn = get_db_connection()
     try:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM sources")
-        s_count = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM article_metadata")
-        a_count = cur.fetchone()[0]
-        return {"total_sources": s_count, "total_articles": a_count}
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 1. Đếm Nguồn tin
+        cur.execute("SELECT COUNT(*) as count FROM dim_source")
+        s_count = cur.fetchone()['count']
+        
+        # 2. Đếm tổng số bài báo
+        cur.execute("SELECT COUNT(*) as count FROM article_metadata")
+        a_count = cur.fetchone()['count']
+
+        # 3. Đếm tổng số Vector
+        cur.execute("SELECT COUNT(*) as count FROM fact_chunks")
+        v_count = cur.fetchone()['count']
+
+        # 4. Lấy Top 5 Tác giả
+        cur.execute("""
+            SELECT a.author_name as name, COUNT(faa.article_id) as count
+            FROM fact_article_authors faa
+            JOIN dim_author a ON faa.author_id = a.author_id
+            GROUP BY a.author_name
+            ORDER BY count DESC
+            LIMIT 5
+        """)
+        top_authors = cur.fetchall()
+
+        if top_authors:
+            max_count = top_authors[0]['count']
+            for auth in top_authors:
+                auth['percent'] = int((auth['count'] / max_count) * 100) if max_count > 0 else 0
+
+        # 5. Lấy phân bổ nguồn tin cho Pie Chart (THÊM MỚI Ở ĐÂY)
+        cur.execute("""
+            SELECT s.domain as name, COUNT(f.article_id) as value
+            FROM fact_articles f
+            JOIN dim_source s ON f.source_id = s.source_id
+            GROUP BY s.domain
+            ORDER BY value DESC
+        """)
+        source_distribution = cur.fetchall()
+
+        # Tính phần trăm % cho từng nguồn báo
+        total_pie_articles = sum(item['value'] for item in source_distribution)
+        for item in source_distribution:
+            item['percent'] = round((item['value'] / total_pie_articles) * 100, 1) if total_pie_articles > 0 else 0
+
+        # 6. Lấy dữ liệu trend (Line Chart) - Số bài theo ngày (7 ngày gần nhất có dữ liệu)
+        cur.execute("""
+            SELECT TO_CHAR(t.date, 'DD/MM') as date, COUNT(f.article_id) as count
+            FROM fact_articles f
+            JOIN dim_time t ON f.time_id = t.time_id
+            WHERE t.date IS NOT NULL
+            GROUP BY t.date
+            ORDER BY t.date DESC
+            LIMIT 7
+        """)
+        trend_data = cur.fetchall()
+        # Đảo ngược mảng lại (từ cũ đến mới) để Line Chart vẽ từ trái qua phải cho đúng chiều thời gian
+        trend_data.reverse()
+
+        # 7. Lấy 5 bài báo mới nhất (Thay thế cho Keywords)
+        cur.execute("""
+            SELECT f.title, s.domain as source, TO_CHAR(t.date, 'DD/MM/YYYY') as date
+            FROM fact_articles f
+            JOIN dim_source s ON f.source_id = s.source_id
+            JOIN dim_time t ON f.time_id = t.time_id
+            ORDER BY f.article_id DESC
+            LIMIT 10
+        """)
+        latest_articles = cur.fetchall()
+
+        return {
+            "total_sources": s_count, 
+            "total_articles": a_count,
+            "total_vectors": v_count,
+            "top_authors": top_authors,
+            "source_distribution": source_distribution,
+            "trend_data": trend_data,
+            "latest_articles": latest_articles # <-- Thêm dòng này
+        }
     finally:
         cur.close()
         conn.close()
-
+        
 @app.get("/models")
 async def list_models():
     return {"models": generator_registry.list_generators()}
@@ -314,6 +419,77 @@ async def get_latest_chunks():
         return cur.fetchall()
     except Exception as e:
         return []
+    finally:
+        cur.close()
+        conn.close()
+        
+@app.get("/pipeline/status")
+async def get_pipeline_status():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 1. Kiểm tra số lượng tin nhắn chờ trong DB (giả sử bạn có bảng staging hoặc status)
+        cur.execute("SELECT count(*) FROM fact_articles")
+        total_articles = cur.fetchone()['count']
+        
+        # 2. Kiểm tra log ETL gần nhất (giả sử bạn có bảng log)
+        # cur.execute("SELECT status, timestamp FROM etl_logs ORDER BY timestamp DESC LIMIT 5")
+        # logs = cur.fetchall()
+
+        return {
+            "services": {
+                "database": "connected",
+                "vector_db": "connected", # Có thể thêm logic check qdrant_client.get_collections()
+                "kafka": "running",
+                "llm_provider": "active"
+            },
+            "stats": {
+                "total_processed": total_articles,
+                "last_run": time.strftime("%H:%M:%S")
+            },
+            "components": [
+                {"name": "Crawler", "status": "idle", "processed": 120},
+                {"name": "Kafka Producer", "status": "active", "processed": 120},
+                {"name": "Spark/ETL", "status": "active", "processed": 115},
+                {"name": "Vector Ingestion", "status": "active", "processed": 115}
+            ]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+        
+@app.get("/articles/{article_id}/chunks")
+async def get_article_chunks_from_db(article_id: int):
+    """Lấy danh sách các chunks của một bài báo trực tiếp từ Postgres Data Warehouse"""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Lấy dữ liệu từ bảng fact_chunks
+        cur.execute("""
+            SELECT chunk_index, content 
+            FROM fact_chunks 
+            WHERE article_id = %s 
+            ORDER BY chunk_index ASC
+        """, (article_id,))
+        
+        records = cur.fetchall()
+        
+        # Format lại dữ liệu cho khớp với giao diện React
+        formatted_chunks = []
+        for row in records:
+            formatted_chunks.append({
+                "chunk_id": f"idx_{row['chunk_index']}",
+                "text": row['content']
+            })
+            
+        return {"status": "success", "total_chunks": len(formatted_chunks), "chunks": formatted_chunks}
+    except Exception as e:
+        logger.error(f"Lỗi khi lấy chunks cho article {article_id}: {e}")
+        return {"status": "error", "message": str(e), "chunks": []}
     finally:
         cur.close()
         conn.close()

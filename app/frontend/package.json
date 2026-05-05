@@ -1,17 +1,31 @@
 {
-  "name": "news-rag-frontend",
-  "version": "1.0.0",
-  "description": "Simple frontend for News RAG system",
-  "main": "index.html",
+  "name": "front-end",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "live-server --port=3000 --host=0.0.0.0",
-    "start": "live-server --port=3000 --host=0.0.0.0 --open=/",
-    "build": "echo 'No build step required for simple HTML'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.15.2",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.11.0",
+    "next": "^16.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "live-server": "^1.2.2"
-  },
-  "keywords": ["news", "rag", "frontend"],
-  "author": "",
-  "license": "MIT"
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.12",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3"
+  }
 }
