@@ -27,6 +27,8 @@ QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
 
+
+
 def generate_uuid(article_id, chunk_index):
     """Tạo một UUID cố định vĩnh viễn dựa trên article_id và chunk_index"""
     unique_string = f"article_{article_id}_chunk_{chunk_index}"
@@ -34,11 +36,12 @@ def generate_uuid(article_id, chunk_index):
 
 def run_vectorization():
     print("[*] Đang tải mô hình BAAI/bge-m3 (Phiên bản Hybrid)...")
-    model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True) 
+    #model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
+    model = BGEM3FlagModel('BAAI/bge-m3')
     
     # Kết nối lên Qdrant Cloud
     qdrant = QdrantClient(
-        url=f"https://{QDRANT_HOST}", 
+        url=f"https://{QDRANT_HOST}",
         api_key=QDRANT_API_KEY
     )
     
