@@ -31,6 +31,9 @@ class BaseGenerator(ABC):
                 raise ValueError("Invalid configuration: 'config' is required for Generator.")
             self._config = config
             self._llm = self._init_llm()
+            if not self._llm:
+                self.chain = None
+                logger.error(f"[{self._config.name.upper()}] LLM was not initialized. Chain is unavailable.")
             self._prompt_template = ChatPromptTemplate.from_messages([
                 ("system", NEWS_RAG_SYSTEM_PROMPT),
                 ("human", NEWS_RAG_HUMAN_PROMPT)
@@ -47,7 +50,6 @@ class BaseGenerator(ABC):
 
     def _format_context(self, sources: List[SearchHit]) -> str:
         """Formats the search hits into a string context for the prompt."""
-        formatted_context = ""
         return "\n\n".join([
             f"[{i+1}] {s.title}: {s.content}\nSource: {s.url}" 
             for i, s in enumerate(sources)
@@ -146,7 +148,7 @@ class NvidiaGenerator(BaseGenerator):
     def _init_llm(self):
         """Initializes the Nvidia LLM."""
         try:
-            logger.info(f"[{self._config.name.upper()}Generator] Initializing Groq LLM and prompt chain...")
+            logger.info(f"[{self._config.name.upper()}Generator] Initializing Nvidia LLM and prompt chain...")
             return ChatNVIDIA(
                 model=self._config.model_id,
                 nvidia_api_key=self._config.api_key,
@@ -194,7 +196,6 @@ class GeneratorRegistry:
 
     def _setup(self):
         """Initializes the generator instances based on the settings."""
-        self._generators: Dict[str, BaseGenerator] = {}
         self._id_map: Dict[str, str] = {}
 
         for cfg in settings.llm.instances:

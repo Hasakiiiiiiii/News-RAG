@@ -41,9 +41,6 @@ class Retriever:
         with self.__class__._lock:
             if self._is_initialized:
                 return 
-        
-            if self._is_initialized:
-                return
             
             logger.info("[Retriever] Initializing Retriever instance.")
             
@@ -127,18 +124,11 @@ class Retriever:
             query_bundle = QueryBundle(query_str=query)
             # 1. Retrieve initial results using hybrid search
             retrieved_nodes = self.retriever.retrieve(query_bundle)
-            # --- THÊM DÒNG NÀY ĐỂ DEBUG ---
-            print(f"\n[DEBUG] TRƯỚC RERANK: Lấy được {len(retrieved_nodes)} kết quả từ Qdrant")
-            if retrieved_nodes:
-                print(f"[DEBUG] Node đầu tiên: {retrieved_nodes[0].node.text[:50]}...")
-            # -----------------------------
-            logger.info(f"[Retriever] Retrieved {len(retrieved_nodes)} initial results for query: {query}")
-
             # 2. Reranking top results using the Reranker model
             if retrieved_nodes:
-                logger.info(f"[Retriever] Reranking top {self.settings.model.top_k_rerank} results...")
+                logger.info(f"[Retriever] Reranking retrieved results to get top {self.settings.model.top_k_rerank}...")
                 reranked_results = self.reranker.postprocess_nodes(
-                    nodes=retrieved_nodes[:self.settings.model.top_k_rerank],
+                    nodes=retrieved_nodes,
                     query_bundle=query_bundle
                     )
                 logger.info("[Retriever] Reranking completed.")
