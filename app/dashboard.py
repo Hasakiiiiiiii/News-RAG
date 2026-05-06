@@ -1,16 +1,22 @@
+import os
+from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd
 import psycopg2
 from datetime import datetime
 
-# --- CẤU HÌNH KẾT NỐI ---
-PG_CONFIG = {
-    "dbname": "postgres",
-    "user": "tuantran",
-    "password": "tuantran",
-    "host": "news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com"
-}
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, '.env')
+load_dotenv(dotenv_path)
 
+# --- 1. CẤU HÌNH KẾT NỐI POSTGRESQL (Lấy từ .env) ---
+PG_CONFIG = {
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT", 5432)) # Ép kiểu số nguyên cho chắc chắn
+}
 
 @st.cache_resource(ttl=10)
 def get_connection():

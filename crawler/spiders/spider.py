@@ -3,6 +3,7 @@ import json
 import re
 import platform
 import scrapy
+from urllib.parse import urlparse
 from newspaper import Article
 from datetime import datetime
 
@@ -27,8 +28,8 @@ class NewsRAGSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         curr_dir = os.path.dirname(os.path.realpath(__file__))
-        config_filename = 'config_site.json'
-        config_path = os.path.abspath(os.path.join(curr_dir, config_filename))
+        crawler_dir = os.path.dirname(curr_dir)
+        config_path = os.path.abspath(os.path.join(crawler_dir, 'config', 'config_site.json'))
 
         if not os.path.exists(config_path):
             self.logger.error(f"Không tìm thấy file: {config_path}")
@@ -39,7 +40,8 @@ class NewsRAGSpider(scrapy.Spider):
         self.start_urls = [s['url'] if isinstance(s, dict) else s for s in sites]
 
     def parse(self, response):
-        curr_domain = scrapy.utils.url.parse_url(response.url).netloc
+        # curr_domain = scrapy.utils.url.parse_url(response.url).netloc
+        curr_domain = urlparse(response.url).netloc
         all_links = response.css('a::attr(href)').getall()
         
         for link in all_links:
@@ -302,7 +304,7 @@ class NewsRAGSpider(scrapy.Spider):
             'title': article.title.strip(),
             'content': article.text.strip(),
             'url': response.url,
-            'source': scrapy.utils.url.parse_url(response.url).netloc,
+            'source': urlparse(response.url).netloc,
             'author': author,
             'publish_date': publish_date
         }

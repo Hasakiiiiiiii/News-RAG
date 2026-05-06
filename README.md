@@ -127,7 +127,7 @@ make reset_qdrant
 4. Generation: GeneratorRegistry điều phối model LLM được chọn để tổng hợp thông tin và trả lời người dùng bằng tiếng Việt.
 | Lệnh | Mô tả |
 | :--- | :--- |
-| `make test-interative` | Khởi động giao diện chat tương tác CLI (nhập liệu từ bàn phím). |
+| `make test-interactive` | Khởi động giao diện chat tương tác CLI (nhập liệu từ bàn phím). |
 | `make test-gen` | Kiểm tra riêng lẻ khả năng phản hồi của các Generator. |
 | `make test-pipeline` | Chạy kiểm tra tích hợp toàn bộ luồng từ Retrieval đến Generation. |
 

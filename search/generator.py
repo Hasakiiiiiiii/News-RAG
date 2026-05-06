@@ -289,4 +289,3 @@ class GeneratorRegistry:
         return results
 
 generator_registry = GeneratorRegistry()
-

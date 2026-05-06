@@ -1,14 +1,21 @@
+import os
+from dotenv import load_dotenv
 import json
 import hashlib
 import psycopg2
 from confluent_kafka import Consumer
 
-# --- CẤU HÌNH ---
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, '.env')
+load_dotenv(dotenv_path)
+
+# --- 1. CẤU HÌNH KẾT NỐI POSTGRESQL (Lấy từ .env) ---
 PG_CONFIG = {
-    "dbname": "postgres",
-    "user": "tuantran",
-    "password": "tuantran",
-    "host": "news-rag-cloud.cl2emq8kis9l.ap-southeast-2.rds.amazonaws.com"
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT", 5432)) # Ép kiểu số nguyên cho chắc chắn
 }
 
 # Kết nối PostgreSQL

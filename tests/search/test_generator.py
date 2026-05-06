@@ -21,7 +21,8 @@ def test_scaling_generators():
         print("[!] Không có model nào được nạp. Hãy kiểm tra NUM_MODELS trong .env")
         return
 
-    print(f"[*] Đã nạp {len(available_models)} models: {list(available_models.keys())}")
+    model_names = [m["name"] for m in available_models]
+    print(f"[*] Đã nạp {len(available_models)} models: {model_names}")
 
     # 3. Chạy thử nghiệm
     query = "Tình hình giá dầu mỏ thế giới hiện nay như thế nào?"
@@ -38,11 +39,17 @@ def test_scaling_generators():
             return
 
         # Bước 2: Duyệt qua từng model để lấy câu trả lời (Scaling Test)
-        for model_name in available_models.keys():
-            print(f"\n--- [Đang gọi AI: {model_name.upper()}] ---")
+        for model_item in available_models:
+            actual_model_name = model_item.get("name")
+            
+            if not actual_model_name:
+                print(f"[!] Dữ liệu model bị lỗi, bỏ qua: {model_item}")
+                continue
+
+            print(f"\n--- [Đang gọi AI: {actual_model_name.upper()}] ---")
             
             # Lấy generator cụ thể từ registry
-            generator = generator_registry.get_generator(model_name)
+            generator = generator_registry.get_generator(actual_model_name)
             
             # Thực thi tạo câu trả lời
             response = generator.generate(query, search_hits)

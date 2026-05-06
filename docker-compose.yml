@@ -29,7 +29,7 @@ services:
         - MONGO_INITDB_ROOT_USERNAME=newsrag
         - MONGO_INITDB_ROOT_PASSWORD=newsrag
       volumes:
-        - ./data/mongo_data:/data/db
+        - mongo_data:/data/db
   # postgres:
   #   image: ankane/pgvector:latest # Bản có sẵn vector search
   #   container_name: postgres_news_rag
@@ -49,6 +49,20 @@ services:
   #     - "6334:6334" # Cổng gRPC (nhanh hơn cho Python)
   #   volumes:
   #     - ./data/qdrant_data:/qdrant/storage
+  postgres:
+    image: postgres:15
+    container_name: postgres_news_rag
+    restart: always
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./data/postgres_data:/var/lib/postgresql/data
+      # Tự động chạy script khởi tạo schema khi container build lần đầu
+      - ./database/warehouse.sql:/docker-entrypoint-initdb.d/init.sql
 volumes:
   mongo_data:
   postgres_data:
