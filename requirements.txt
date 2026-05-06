@@ -25,10 +25,6 @@ langchain_openai
 langchain_google_genai
 langchain_ollama
 langchain_groq
-<<<<<<< HEAD
-langchain-nvidia-ai-endpoints
-=======
 langchain-nvidia-ai-endpoints
 ragas 
 datasets
->>>>>>> bc3b948f4a3e65812b756c359b6e671fca9ee042
