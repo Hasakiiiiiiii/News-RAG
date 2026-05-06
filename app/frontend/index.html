@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News RAG & Data Warehouse</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #1d4ed8; font-weight: bold; }
+        .pulse-line { animation: pulseBg 2s infinite; }
+        @keyframes pulseBg { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        /* Tùy chỉnh thanh cuộn cho đẹp */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-blue-600 text-2xl"></i>
+                    <span class="font-bold text-xl text-gray-800">News RAG System</span>
+                </div>
+                <div class="flex space-x-6">
+                    <button onclick="switchTab('search')" id="tab-search" class="pb-1 tab-active hover:text-blue-600 transition">
+                        <i class="fa-solid fa-comments mr-1"></i> Trợ lý AI
+                    </button>
+                    <button onclick="switchTab('monitor')" id="tab-monitor" class="pb-1 text-gray-500 hover:text-blue-600 transition">
+                        <i class="fa-solid fa-server mr-1"></i> Pipeline Monitor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 max-w-6xl mx-auto w-full px-4 pt-6 pb-32">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: RAG SEARCH (GIAO DIỆN CHAT FEED)    -->
+        <!-- ========================================== -->
+        <div id="view-search" class="block h-full relative">
+            
+            <!-- Nút Xóa Lịch Sự -->
+            <div class="flex justify-end mb-4">
+                <button onclick="clearHistory()" class="text-sm text-red-500 hover:text-red-700 font-medium transition bg-white px-3 py-1.5 rounded-md shadow-sm border border-red-100">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Xóa lịch sử
+                </button>
+            </div>
+
+            <!-- Khung Lịch Sử Chat -->
+            <div id="chat-history-container" class="space-y-6">
+                <!-- Nội dung chat sẽ được JS nhồi vào đây -->
+            </div>
+
+            <!-- Thanh Nhập Liệu Bám Đáy -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-40">
+                <div class="max-w-6xl mx-auto flex flex-col gap-3">
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <select id="model-select" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-56 text-sm">
+                            <option value="default">Đang tải models...</option>
+                        </select>
+                        <input type="text" id="query-input" placeholder="Nhập câu hỏi (VD: Tình hình giá dầu hiện nay?)" 
+                            class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onkeypress="if(event.key === 'Enter') executeSearch('rag')">
+                    </div>
+                    <div class="flex flex-wrap gap-2 justify-end">
+                        <button onclick="executeSearch('rag')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition">
+                            <i class="fa-solid fa-robot mr-2"></i>Hỏi AI
+                        </button>
+                        <button onclick="executeSearch('retrieve')" class="bg-slate-700 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition">
+                            <i class="fa-solid fa-database mr-2"></i>Tìm Qdrant
+                        </button>
+                        <button onclick="executeSearch('compare')" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-5 rounded-lg shadow-sm transition">
+                            <i class="fa-solid fa-scale-balanced mr-2"></i>So sánh LLMs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: DATA PIPELINE MONITOR               -->
+        <!-- ========================================== -->
+        <div id="view-monitor" class="hidden">
+            <!-- Data Flow Visual -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4"><i class="fa-solid fa-network-wired text-blue-500 mr-2"></i>Data Pipeline Status</h2>
+                <div class="flex flex-col md:flex-row items-center justify-between text-center gap-2">
+                    <div class="p-4 rounded-lg bg-green-50 border border-green-200 w-full md:w-auto"><i class="fa-solid fa-spider text-2xl text-green-600 mb-2"></i><p class="font-bold text-sm">1. Scrapy</p><p class="text-xs text-gray-500">Crawling Data</p></div>
+                    <div class="flex-1 h-1 bg-green-400 pulse-line hidden md:block"></div>
+                    <div class="p-4 rounded-lg bg-yellow-50 border border-yellow-200 w-full md:w-auto"><i class="fa-solid fa-envelope-open-text text-2xl text-yellow-600 mb-2"></i><p class="font-bold text-sm">2. Kafka</p><p class="text-xs text-gray-500">Message Queue</p></div>
+                    <div class="flex-1 h-1 bg-yellow-400 pulse-line hidden md:block"></div>
+                    <div class="p-4 rounded-lg bg-blue-50 border border-blue-200 w-full md:w-auto"><i class="fa-solid fa-database text-2xl text-blue-600 mb-2"></i><p class="font-bold text-sm">3. PostgreSQL</p><p class="text-xs text-gray-500">Data Warehouse</p></div>
+                    <div class="flex-1 h-1 bg-blue-400 pulse-line hidden md:block"></div>
+                    <div class="p-4 rounded-lg bg-purple-50 border border-purple-200 w-full md:w-auto"><i class="fa-solid fa-vector-square text-2xl text-purple-600 mb-2"></i><p class="font-bold text-sm">4. Qdrant</p><p class="text-xs text-gray-500">Vector Embeddings</p></div>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="metrics-grid"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Authors Table -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-800 mb-4 border-b pb-2"> Bài báo & Tác giả mới nhất</h3>
+                    <div class="overflow-y-auto max-h-80 text-sm">
+                        <table class="w-full text-left" id="authors-table">
+                            <thead class="text-gray-500 sticky top-0 bg-white"><tr><th class="py-2">Tiêu đề</th><th class="py-2">Tác giả</th></tr></thead>
+                            <tbody class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Chunks Container -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-800 mb-4 border-b pb-2"> Mẫu Chunking (Bài mới nhất)</h3>
+                    <div class="overflow-y-auto max-h-80 text-sm space-y-3" id="chunks-container"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        const HISTORY_KEY = 'news_rag_history';
+        let chatHistory = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchModels();
+            fetchMonitorData();
+            renderHistoryFeed();
+        });
+
+        // --- ĐIỀU HƯỚNG TABS ---
+        function switchTab(tabName) {
+            document.getElementById('view-search').classList.toggle('hidden', tabName !== 'search');
+            document.getElementById('view-monitor').classList.toggle('hidden', tabName !== 'monitor');
+            document.getElementById('tab-search').classList.toggle('tab-active', tabName === 'search');
+            document.getElementById('tab-search').classList.toggle('text-gray-500', tabName !== 'search');
+            document.getElementById('tab-monitor').classList.toggle('tab-active', tabName === 'monitor');
+            document.getElementById('tab-monitor').classList.toggle('text-gray-500', tabName !== 'monitor');
+            if(tabName === 'monitor') fetchMonitorData();
+        }
+
+        // --- FETCH DỮ LIỆU BAN ĐẦU ---
+        async function fetchModels() {
+            try {
+                const res = await fetch(`${API_URL}/models`);
+                const data = await res.json();
+                const select = document.getElementById("model-select");
+                select.innerHTML = ""; 
+                data.models.forEach(m => { select.add(new Option(`${m.name} (${m.provider})`, m.name)); });
+            } catch (e) {}
+        }
+
+        async function fetchMonitorData() {
+            try {
+                const resM = await fetch(`${API_URL}/monitor/metrics`);
+                const dataM = await resM.json();
+                if(!dataM.error) {
+                    document.getElementById('metrics-grid').innerHTML = `
+                        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm text-center"><div class="text-3xl font-black text-blue-600 mb-1">${dataM.total_articles.toLocaleString()}</div><div class="text-sm font-medium text-gray-500 uppercase">Bài báo</div></div>
+                        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm text-center"><div class="text-3xl font-black text-indigo-600 mb-1">${dataM.total_chunks.toLocaleString()}</div><div class="text-sm font-medium text-gray-500 uppercase">Tổng Chunks</div></div>
+                        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm text-center"><div class="text-3xl font-black text-emerald-600 mb-1">${dataM.avg_chunks_per_article}</div><div class="text-sm font-medium text-gray-500 uppercase">Chunk TB</div></div>
+                        <div class="bg-white p-5 rounded-xl border border-red-100 bg-red-50 shadow-sm text-center"><div class="text-3xl font-black text-red-600 mb-1">${dataM.date_errors}</div><div class="text-sm font-medium text-red-500 uppercase">Lỗi Ngày</div></div>
+                    `;
+                }
+
+                const resA = await fetch(`${API_URL}/monitor/authors`);
+                const dataA = await resA.json();
+                let tbody = '';
+                dataA.forEach(row => { tbody += `<tr><td class="py-2 pr-2 font-medium text-gray-700">${row.title}</td><td class="py-2 text-gray-500 whitespace-nowrap">${row.authors}</td></tr>`; });
+                document.querySelector('#authors-table tbody').innerHTML = tbody;
+
+                const resC = await fetch(`${API_URL}/monitor/latest-chunks`);
+                const dataC = await resC.json();
+                let chunksHtml = '';
+                dataC.forEach(chunk => { chunksHtml += `<div class="p-3 bg-gray-50 rounded border border-gray-200"><span class="inline-block px-2 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded mb-2">Chunk #${chunk.chunk_index}</span><p class="text-gray-600">${chunk.content.substring(0, 150)}...</p></div>`; });
+                document.getElementById('chunks-container').innerHTML = chunksHtml || "<p class='text-gray-500'>Chưa có dữ liệu.</p>";
+            } catch (e) { console.error(e); }
+        }
+
+        // --- QUẢN LÝ LỊCH SỬ CHAT ---
+        function saveToHistory(query, dataHtml) {
+            chatHistory.push({ query, html: dataHtml });
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory));
+        }
+
+        function clearHistory() {
+            if(confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử?")) {
+                chatHistory = [];
+                localStorage.removeItem(HISTORY_KEY);
+                renderHistoryFeed();
+            }
+        }
+
+        // --- CẬP NHẬT: MÀN HÌNH CHỜ (EMPTY STATE) CÓ TIN TỨC MỚI ---
+        async function renderHistoryFeed() {
+            const container = document.getElementById("chat-history-container");
+            
+            if (chatHistory.length === 0) {
+                // Render khung chờ
+                container.innerHTML = `
+                    <div class="max-w-3xl mx-auto mt-10" id="empty-state">
+                        <div class="text-center mb-8">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                                <i class="fa-solid fa-newspaper text-3xl"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800">Trợ lý Tin tức AI</h2>
+                            <p class="text-gray-500 mt-2">Hỏi tôi bất cứ sự kiện nào, tôi sẽ tổng hợp từ kho dữ liệu cho bạn.</p>
+                        </div>
+                        
+                        <!-- Khu vực hiển thị tin mới nhất -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-slate-50 border-b border-gray-100 px-5 py-3 flex items-center justify-between">
+                                <h3 class="font-bold text-slate-700"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>Tin nóng vừa cập nhật</h3>
+                                <span class="text-xs text-gray-400">Dữ liệu theo thời gian thực</span>
+                            </div>
+                            <div id="latest-news-list" class="divide-y divide-gray-100">
+                                <div class="p-4 text-center text-sm text-gray-400">Đang tải tin tức...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Gọi API lấy tin mới
+                try {
+                    const res = await fetch(`${API_URL}/api/news/latest?limit=5`);
+                    const news = await res.json();
+                    let newsHtml = "";
+                    
+                    if (news.length > 0) {
+                        news.forEach(item => {
+                            // Format ngày giờ (cắt bỏ phần timezone nếu có để nhìn gọn hơn)
+                            let pubDate = item.published_date.substring(0, 16).replace('T', ' ');
+                            newsHtml += `
+                                <div class="p-4 hover:bg-blue-50 transition cursor-pointer flex flex-col gap-1" onclick="document.getElementById('query-input').value='Tóm tắt tin: ${item.title}'; document.getElementById('query-input').focus();">
+                                    <a href="${item.url}" target="_blank" class="font-semibold text-gray-800 hover:text-blue-600 line-clamp-2" onclick="event.stopPropagation()">
+                                        ${item.title}
+                                    </a>
+                                    <div class="text-xs text-gray-400 flex items-center gap-2">
+                                        <i class="fa-regular fa-clock"></i> ${pubDate}
+                                        <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-500 ml-auto hidden md:inline-block">Bấm để hỏi AI</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        newsHtml = `<div class="p-4 text-center text-sm text-gray-500">Chưa có bài viết nào trong kho dữ liệu.</div>`;
+                    }
+                    document.getElementById("latest-news-list").innerHTML = newsHtml;
+                } catch (error) {
+                    document.getElementById("latest-news-list").innerHTML = `<div class="p-4 text-center text-sm text-red-400">Không thể tải tin mới.</div>`;
+                }
+                
+                return;
+            }
+
+            // Nếu đã có lịch sử chat thì render ra như bình thường
+            container.innerHTML = "";
+            chatHistory.forEach(item => {
+                container.innerHTML += buildUserMessage(item.query);
+                container.innerHTML += item.html;
+            });
+            scrollToBottom();
+        }
+
+        function buildUserMessage(query) {
+            return `
+                <div class="flex justify-end mb-6">
+                    <div class="bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-br-sm max-w-[80%] shadow-sm">
+                        <p class="font-medium">${query}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function buildSystemWarning(msg) {
+            return `
+                <div class="flex justify-center mb-6">
+                    <div class="bg-red-50 border border-red-200 px-4 py-3 rounded-lg shadow-sm flex items-center gap-3">
+                        <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                        <span class="text-red-700 text-sm font-medium">${msg}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function scrollToBottom() {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // --- XỬ LÝ CHAT & TÌM KIẾM ---
+        async function executeSearch(type) {
+            const queryInput = document.getElementById("query-input");
+            const query = queryInput.value.trim();
+            const container = document.getElementById("chat-history-container");
+
+            // Xóa empty state
+            const emptyState = document.getElementById("empty-state");
+            if (emptyState) emptyState.remove();
+
+            // 1. Kiểm tra rỗng -> Hiển thị cảnh báo vào feed
+            if (!query) {
+                container.innerHTML += buildSystemWarning("Vui lòng nhập câu hỏi trước khi gửi yêu cầu!");
+                queryInput.focus();
+                scrollToBottom();
+                return;
+            }
+
+            // 2. In câu hỏi User
+            container.innerHTML += buildUserMessage(query);
+            queryInput.value = "";
+            scrollToBottom();
+
+            // 3. In hiệu ứng Loading
+            const loadingId = "loading-" + Date.now();
+            container.innerHTML += `
+                <div id="${loadingId}" class="flex justify-start mb-6">
+                    <div class="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-bl-sm shadow-sm flex items-center gap-3">
+                        <div class="loader"></div><span class="text-gray-500 text-sm font-medium">Hệ thống đang xử lý...</span>
+                    </div>
+                </div>
+            `;
+            scrollToBottom();
+
+            // 4. Gắn endpoint theo hành động
+            let endpoint = type === 'rag' ? "/search" : type === 'retrieve' ? "/search/retrieve" : "/search/compare";
+            let payload = { query: query, model: document.getElementById("model-select").value };
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                let responseHtml = "";
+                if (type === 'rag') responseHtml = generateRAGHtml(data);
+                if (type === 'retrieve') responseHtml = generateRetrieveHtml(data);
+                if (type === 'compare') responseHtml = generateCompareHtml(data);
+
+                // Xóa loading và chèn kết quả
+                document.getElementById(loadingId).remove();
+                container.innerHTML += responseHtml;
+                
+                // Lưu lịch sử
+                saveToHistory(query, responseHtml);
+                scrollToBottom();
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                const errorHtml = buildSystemWarning(`Lỗi máy chủ: ${error.message}`);
+                container.innerHTML += errorHtml;
+                saveToHistory(query, errorHtml);
+                scrollToBottom();
+            }
+        }
+
+        // --- CÁC HÀM SINH HTML ---
+        function generateRAGHtml(data) {
+            const raw = data.raw_data || {};
+            let rawText = raw.summary || "Không tìm thấy câu trả lời.";
+            rawText = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(); // Cắt thẻ think
+            
+            let html = `
+                <div class="flex justify-start mb-6">
+                    <div class="bg-white border border-gray-200 p-6 rounded-2xl rounded-bl-sm w-full md:max-w-[85%] shadow-sm">
+                        <div class="flex items-center gap-2 mb-4 text-blue-600 font-bold border-b pb-2">
+                            <i class="fa-solid fa-robot"></i><span>AI Phản Hồi</span>
+                        </div>
+                        <div class="prose max-w-none text-gray-800 text-sm md:text-base leading-relaxed">${marked.parse(rawText)}</div>
+            `;
+            if (raw.results && raw.results.length > 0) {
+                html += `<div class="mt-5 pt-4 border-t border-gray-100"><h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">🔗 Nguồn tham khảo</h3><div class="flex flex-wrap gap-2">`;
+                raw.results.forEach((hit, i) => {
+                    html += `<a href="${hit.url}" target="_blank" class="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs rounded-md transition truncate max-w-[250px]" title="${hit.title}">[${i+1}] ${hit.title}</a>`;
+                });
+                html += `</div></div>`;
+            }
+            html += `</div></div>`;
+            return html;
+        }
+
+        function generateRetrieveHtml(data) {
+            let html = `<div class="flex justify-start mb-6"><div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl rounded-bl-sm w-full shadow-sm"><h2 class="text-lg font-bold mb-4 text-slate-800"><i class="fa-solid fa-database mr-2 text-slate-600"></i>Kết quả Qdrant (${data.total_found})</h2><div class="grid gap-3">`;
+            (data.results || []).forEach((hit, i) => {
+                html += `<div class="p-4 bg-white rounded-lg border border-slate-200"><a href="${hit.url}" target="_blank" class="text-blue-600 font-bold text-sm md:text-base hover:underline">[${i+1}] ${hit.title}</a><p class="text-sm mt-2 text-gray-600 italic">"${hit.content_snippet}"</p><div class="mt-2 text-xs text-emerald-600 font-semibold">Độ tương đồng (Score): ${hit.score}</div></div>`;
+            });
+            html += `</div></div></div>`;
+            return html;
+        }
+
+        function generateCompareHtml(data) {
+            let html = `<div class="flex justify-start mb-6 w-full"><div class="w-full"><div class="mb-3 text-sm text-gray-500"><i class="fa-solid fa-scale-balanced mr-1"></i> So sánh phản hồi từ các Models (Context: ${data.context_documents} tài liệu)</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-4">`;
+            (data.model_responses || []).forEach(m => {
+                let text = typeof m.response === 'object' ? m.response.summary : m.response;
+                text = (text || "").replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                html += `<div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-purple-500"><h3 class="font-bold text-gray-800 mb-3 uppercase tracking-wide border-b pb-2">${m.model}</h3><div class="prose max-w-none text-sm text-gray-700 overflow-y-auto max-h-72 pr-2 custom-scrollbar">${marked.parse(text)}</div></div>`;
+            });
+            html += `</div></div></div>`;
+            return html;
+        }
+    </script>
+</body>
+</html>
