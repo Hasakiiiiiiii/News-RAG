@@ -14,7 +14,10 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
 from .config import settings, LLMInstanceConfig
 from .schemas import SearchHit
-from .prompts import NEWS_RAG_SYSTEM_PROMPT, NEWS_RAG_HUMAN_PROMPT
+from .prompts import (
+    NEWS_RAG_SYSTEM_PROMPT, NEWS_RAG_HUMAN_PROMPT,
+    VANILLA_SYSTEM_PROMPT, VANILLA_HUMAN_PROMPT
+)
 
 """
 This module defines the generator classes responsible for generating responses based on search hits and user queries. It includes implementations for different LLM providers such as OpenAI, Google, Groq, and a local model via Ollama. The GeneratorRegistry class manages the available generator instances based on the configuration settings.
@@ -33,12 +36,19 @@ class BaseGenerator(ABC):
             self._llm = self._init_llm()
             if not self._llm:
                 self.chain = None
+                self._vanilla_chain = None
                 logger.error(f"[{self._config.name.upper()}] LLM was not initialized. Chain is unavailable.")
             self._prompt_template = ChatPromptTemplate.from_messages([
                 ("system", NEWS_RAG_SYSTEM_PROMPT),
                 ("human", NEWS_RAG_HUMAN_PROMPT)
             ])
             self._chain = self._prompt_template | self._llm | StrOutputParser()
+
+            self._vanilla_prompt_template = ChatPromptTemplate.from_messages([
+                    ("system", VANILLA_SYSTEM_PROMPT),
+                    ("human", VANILLA_HUMAN_PROMPT)
+                ])
+            self._vanilla_chain = self._vanilla_prompt_template | self._llm | StrOutputParser()
         except Exception as e:
             logger.error(f"[Generator] Failed to initialize BaseGenerator: {e}")
             raise RuntimeError(f"Failed to initialize BaseGenerator: {e}")
@@ -55,26 +65,36 @@ class BaseGenerator(ABC):
             for i, s in enumerate(sources)
         ])
 
-    def generate(self, query: str, search_hits: List[SearchHit]) -> str:
+    def generate(self, query: str, search_hits: List[SearchHit], is_vanilla: bool = False) -> str:
         """Generates a response based on the query and search hits."""
         try:
-            logger.info(f"[{self._config.name.upper()}Generator] Generating response...")
+            mode_str = "VANILLA" if is_vanilla else "ADVANCED"
+            logger.info(f"[{self._config.name.upper()}Generator] Generating response in {mode_str} mode...")
 
             if not search_hits:
                 logger.warning(f"[{self._config.name.upper()}Generator] No relevant sources found for the given query.")
                 return "Không tìm thấy nguồn tin nào liên quan đến câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác hoặc kiểm tra lại kết quả tìm kiếm."
         
             context = self._format_context(search_hits)
-            return self._chain.invoke({"context": context, "question": query})
+            
+            active_chain = self._vanilla_chain if is_vanilla else self._chain
+            
+            if not active_chain:
+                logger.error(f"[{self._config.name.upper()}Generator] Cannot generate: LLM Chain is None.")
+                return "Lỗi hệ thống: Không thể kết nối với mô hình AI."
+
+            return active_chain.invoke({"context": context, "question": query})
+            
         except Exception as e:
             logger.error(f"[{self._config.name.upper()}Generator] Error during generation: {e}")
             return f"[{self._config.name.upper()}Generator] An error occurred while generating the response. Please try again later."
-        
+    
     def cleanup(self):
         """Optional method to clean up resources, can be overridden by subclasses."""
         logger.info(f"[{self._config.name.upper()}Generator] Cleaning up resources...")
         self._llm = None
         self._chain = None
+        self._vanilla_chain = None
 
 # ---------------------------- Concrete Generators ----------------------------
 class OpenAIGenerator(BaseGenerator):

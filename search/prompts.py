@@ -23,3 +23,11 @@ NEWS_RAG_HUMAN_PROMPT = """Dựa trên các tài liệu tin tức được cung 
 
             Trả lời:
             """
+
+VANILLA_SYSTEM_PROMPT = """Bạn là một trợ lý AI hữu ích. Nhiệm vụ của bạn là trả lời câu hỏi của người dùng dựa trên ngữ cảnh được cung cấp."""
+
+VANILLA_HUMAN_PROMPT = """Ngữ cảnh: {context}
+
+Câu hỏi: {question}
+
+Trả lời:"""

@@ -9,7 +9,7 @@ UVICORN = venv/bin/uvicorn
 
 # --- LỆNH CHÍNH ---
 
-.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval
+.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval test-vani
 
 # Khởi tạo môi trường lần đầu
 setup:
@@ -78,6 +78,10 @@ test-gen:
 test-pipeline:
 	@echo "[*] Đang kiểm tra Pipeline API..."
 	PYTHONPATH=. $(PYTHON) -m tests.search.test_engine
+
+test-vani:
+	@echo "[*] Đang kiểm tra Vanilla Pipeline API..."
+	PYTHONPATH=. $(PYTHON) -m tests.search.test_vanilla_engine
 
 test-interactive:
 	@echo "[*] Đang kiểm tra..."

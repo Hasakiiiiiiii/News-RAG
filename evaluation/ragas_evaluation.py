@@ -1,15 +1,15 @@
 import os
-import sys # Import thêm sys để xử lý đường dẫn
-import warnings # Import thêm thư viện chặn cảnh báo
+import sys 
+import warnings 
 import pandas as pd
 from dotenv import load_dotenv
 from datasets import Dataset
 from ragas import evaluate
+from ragas.run_config import RunConfig # Bổ sung RunConfig để chống lỗi sót số
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
-
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,18 +29,18 @@ def run_ragas_evaluation():
     print("[*] Đang mời Giám khảo GPT-4o-mini vào vị trí...")
     judge_key = os.getenv("JUDGE_API_KEY")
     
-    # Truyền trực tiếp key vào mô hình
+    # Tăng max_retries và timeout để tránh đứt kết nối giữa chừng
     judge_llm = ChatOpenAI(
         model="gpt-4o-mini", 
         temperature=0.0, 
         api_key=judge_key,
-        max_retries=5,         
-        timeout=60           
+        max_retries=10,        
+        timeout=120          
     )
     judge_embeddings = OpenAIEmbeddings(
         model="text-embedding-3-small", 
         api_key=judge_key,
-        max_retries=5        
+        max_retries=10       
     )
 
     faithfulness.llm = judge_llm
@@ -51,7 +51,14 @@ def run_ragas_evaluation():
 
     metrics = [faithfulness, answer_relevancy, context_precision, context_recall]
 
-    # --- 2. ĐỌC BỘ ĐỀ THI TỰ VIẾT TỪ CSV ---
+    # --- TỐI ƯU HÓA: CẤU HÌNH CHỐNG LỖI SÓT SỐ (NaN) ---
+    ragas_config = RunConfig(
+        max_retries=15,       # Bắt giám khảo thử lại 15 lần nếu trả về JSON lỗi
+        max_wait=90,          # Thời gian chờ tối đa giữa các lần gọi
+        max_workers=4         # Giới hạn số luồng đồng thời để không bị OpenAI chặn (Rate Limit)
+    )
+
+    # --- 2. ĐỌC BỘ ĐỀ THI TỪ CSV ---
     testset_path = "evaluation/testset.csv"
     if not os.path.exists(testset_path):
         print(f"[!] Không tìm thấy file {testset_path}.")
@@ -73,55 +80,79 @@ def run_ragas_evaluation():
     
     pipeline = Pipeline()
 
-    # --- 4. CHẠY VÒNG LẶP ĐÁNH GIÁ TỪNG MODEL ---
+    test_modes = [
+        {"name": "VANILLA_RAG", "is_vanilla": True},
+        {"name": "ADVANCED_RAG", "is_vanilla": False}
+    ]
+
+    # --- 4. CHẠY VÒNG LẶP KÉP: TỪNG MODEL -> TỪNG CHẾ ĐỘ RAG ---
     for model_name in model_names:
-        print("\n" + "="*60)
-        print(f"BẮT ĐẦU KIỂM TRA MÔ HÌNH: {model_name.upper()}")
-        print("="*60)
+        print("\n" + "#"*80)
+        print(f"BẮT ĐẦU ĐÁNH GIÁ MÔ HÌNH: {model_name.upper()}")
+        print("#"*80)
 
-        data_for_ragas = {
-            "question": [],
-            "answer": [],
-            "contexts": [],
-            "ground_truth": []
-        }
-
-        print(f"[*] {model_name} đang làm bài thi...")
-        for idx, tc in enumerate(test_cases):
-            question = str(tc["question"]).strip()
-            print(f"  [{idx+1}/{len(test_cases)}] Đang trả lời: {question[:50]}...")
+        for mode in test_modes:
+            mode_name = mode["name"]
+            is_vanilla_flag = mode["is_vanilla"]
             
-            # ĐIỂM CỐT LÕI: Truyền model_name vào hàm ask để ép pipeline dùng đúng model
-            response = pipeline.ask(query=question, model=model_name)
+            print("\n" + "="*60)
+            print(f"ĐANG CHẠY CHẾ ĐỘ: {mode_name}")
+            print("="*60)
+
+            data_for_ragas = {
+                "question": [],
+                "answer": [],
+                "contexts": [],
+                "ground_truth": []
+            }
+
+            print(f"[*] {model_name} đang làm bài thi ({mode_name})...")
+            for idx, tc in enumerate(test_cases):
+                question = str(tc["question"]).strip()
+                print(f"  [{idx+1}/{len(test_cases)}] Đang trả lời: {question[:50]}...")
+                
+                # Gọi Pipeline với cấu hình tương ứng
+                response = pipeline.ask(query=question, model=model_name, is_vanilla=is_vanilla_flag)
+                
+                # --- TỐI ƯU HÓA: XỬ LÝ CONTEXT RỖNG (TRÁNH LỖI CHIA CHO 0 CỦA RAGAS) ---
+                if response.results:
+                    contexts = [hit.content for hit in response.results]
+                else:
+                    # Nếu không tìm thấy gì, chèn 1 câu giả định để Ragas vẫn chấm 0 điểm thay vì lỗi NaN
+                    contexts = ["Không tìm thấy bất kỳ tài liệu hoặc ngữ cảnh nào liên quan."]
+                
+                answer = response.summary if response.summary else "Không có thông tin."
+                
+                data_for_ragas["question"].append(question)
+                data_for_ragas["answer"].append(answer)
+                data_for_ragas["contexts"].append(contexts)
+                data_for_ragas["ground_truth"].append(str(tc["ground_truth"]).strip())
+
+            dataset = Dataset.from_dict(data_for_ragas)
+
+            print(f"\n[*] Giám khảo đang chấm điểm cho {model_name} - {mode_name} (Vui lòng đợi)...")
+            # Bổ sung run_config vào hàm evaluate
+            evaluation_result = evaluate(
+                dataset=dataset, 
+                metrics=metrics, 
+                run_config=ragas_config, 
+                raise_exceptions=False
+            )
+
+            print("\n" + "-"*50)
+            print(f"BẢNG ĐIỂM CỦA: {model_name.upper()} ({mode_name})")
+            print("-" * 50)
+            print(evaluation_result)
             
-            contexts = [hit.content for hit in response.results]
-            answer = response.summary if response.summary else "Không có thông tin."
+            # --- 5. LƯU BẢNG ĐIỂM VỚI TÊN ĐỘNG ---
+            df_result = evaluation_result.to_pandas()
             
-            data_for_ragas["question"].append(question)
-            data_for_ragas["answer"].append(answer)
-            data_for_ragas["contexts"].append(contexts)
-            data_for_ragas["ground_truth"].append(str(tc["ground_truth"]).strip())
-
-        dataset = Dataset.from_dict(data_for_ragas)
-
-        print(f"\n[*] Giám khảo đang chấm điểm cho {model_name} (Vui lòng đợi)...")
-        # raise_exceptions=False giúp script không bị chết nếu một model nào đó trả về câu trả lời bị lỗi
-        evaluation_result = evaluate(dataset=dataset, metrics=metrics, raise_exceptions=False)
-
-        print("\n" + "-"*50)
-        print(f"BẢNG ĐIỂM CỦA: {model_name.upper()}")
-        print("-"*50)
-        print(evaluation_result)
-        
-        # --- 5. LƯU BẢNG ĐIỂM THEO TÊN MODEL ---
-        df_result = evaluation_result.to_pandas()
-        
-        # Tạo tên file động chứa tên của model hiện tại
-        output_path = f"evaluation/result/ragas_final_scores_{model_name}.csv"
-        
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        df_result.to_csv(output_path, index=False, encoding="utf-8-sig")
-        print(f"[+] Đã lưu bảng điểm chi tiết tại: {output_path}")
+            # Lưu file bao gồm cả tên model và chế độ RAG
+            output_path = f"evaluation/result/eval_{model_name.lower()}_{mode_name.lower()}.csv"
+            
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            df_result.to_csv(output_path, index=False, encoding="utf-8-sig")
+            print(f"[+] Đã lưu bảng điểm chi tiết tại: {output_path}")
 
     print("\nĐÃ HOÀN TẤT KIỂM TRA VÀ CHẤM ĐIỂM TOÀN BỘ HỆ THỐNG!")
 
