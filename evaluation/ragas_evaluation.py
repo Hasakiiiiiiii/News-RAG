@@ -1,8 +1,12 @@
 import os
 import sys 
 import warnings 
+import re
 import pandas as pd
 from dotenv import load_dotenv
+
+load_dotenv()
+
 from datasets import Dataset
 from ragas import evaluate
 from ragas.run_config import RunConfig # Bổ sung RunConfig để chống lỗi sót số
@@ -19,8 +23,6 @@ from search.engine import Pipeline
 from search.generator import generator_registry
 
 def run_ragas_evaluation():
-    load_dotenv()
-    
     if not os.getenv("JUDGE_API_KEY"):
         print("[!] Thiếu JUDGE_API_KEY trong .env.")
         return
@@ -121,10 +123,11 @@ def run_ragas_evaluation():
                     # Nếu không tìm thấy gì, chèn 1 câu giả định để Ragas vẫn chấm 0 điểm thay vì lỗi NaN
                     contexts = ["Không tìm thấy bất kỳ tài liệu hoặc ngữ cảnh nào liên quan."]
                 
-                answer = response.summary if response.summary else "Không có thông tin."
-                
+                raw_answer = response.summary if response.summary else "Không có thông tin."
+                clean_answer = re.sub(r'<think>.*?</think>', '', raw_answer, flags=re.DOTALL)
+                clean_answer = clean_answer.strip()
                 data_for_ragas["question"].append(question)
-                data_for_ragas["answer"].append(answer)
+                data_for_ragas["answer"].append(clean_answer)
                 data_for_ragas["contexts"].append(contexts)
                 data_for_ragas["ground_truth"].append(str(tc["ground_truth"]).strip())
 
