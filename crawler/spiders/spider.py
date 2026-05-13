@@ -75,6 +75,9 @@ class NewsRAGSpider(scrapy.Spider):
         def is_valid_author(name):
 
             clean_name = name.strip()
+            name_lower = clean_name.lower()
+            if name_lower in ['nguồn', 'theo', 'ảnh', 'bài', 'tác giả', 'tổng hợp', 'pv', 'btv']:
+                return False
             # 1. Chặn các đề mục, tựa đề bài viết liên quan (Chứa dấu ? hoặc !)
             if re.match(r'^\d+[\.\-\)]', clean_name) or '?' in clean_name or '!' in clean_name:
                 return False
@@ -141,6 +144,11 @@ class NewsRAGSpider(scrapy.Spider):
                 response.css('div.relative.font-medium::text').get(),
                 response.css('[rel="author"]::text').get(),
                 
+                # --- Thêm bộ chọn cho trường hợp Nguồn: TNL ---
+                response.css('.author-data::attr(title)').get(),
+                response.css('.author-data img::attr(alt)').get(),
+                response.css('[data-author-id]::attr(title)').get(),
+                
                 # Bắn tỉa thẻ link "tac-gia"
                 response.css('div.name a[href*="tac-gia"]::text').get(),
                 response.css('div.name a[href*="tac-gia"]::attr(title)').get(),
@@ -181,6 +189,7 @@ class NewsRAGSpider(scrapy.Spider):
                     clean_a = a.split('•')[0].strip()
                     clean_a = re.sub(r'(?i)(?:hotline|liên hệ|sđt|đt)?\s*:?\s*(?:0|\+84)[\d\s.-]{8,12}', '', clean_a)
                     clean_a = re.sub(r'^-|-$', '', clean_a).strip()
+                    clean_a = re.sub(r'(?i)^(?:Nguồn|Theo|Source|Ảnh và bài|Bài và ảnh|Ảnh|Tổng hợp)\s*:?\s*', '', clean_a).strip()
                     
                     if is_valid_author(clean_a):
                         author = clean_a
