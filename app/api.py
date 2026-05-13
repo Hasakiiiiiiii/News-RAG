@@ -80,7 +80,7 @@ async def search(request: SearchRequest):
         raise HTTPException(status_code=400, detail="Query is required")
 
     try:
-        response = p.ask(request.query.strip(), model=request.model)
+        response = p.generate_response(request.query.strip(), model=request.model)
         
         separator = "-" * 30
         results_list = getattr(response, 'results', []) or []

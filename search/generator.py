@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Type, Dict
 from .logger_setup import logger
 import threading
+import re
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -64,6 +65,13 @@ class BaseGenerator(ABC):
             f"[{i+1}] {s.title}: {s.content}\nSource: {s.url}" 
             for i, s in enumerate(sources)
         ])
+    
+    def _clean_response(self, text: str) -> str:
+        """Helper aims to remove the <think>...</think> from the response."""
+        if text:
+            cleaned_text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+            return cleaned_text.strip()
+        return text
 
     def generate(self, query: str, search_hits: List[SearchHit], is_vanilla: bool = False) -> str:
         """Generates a response based on the query and search hits."""
@@ -83,7 +91,13 @@ class BaseGenerator(ABC):
                 logger.error(f"[{self._config.name.upper()}Generator] Cannot generate: LLM Chain is None.")
                 return "Lỗi hệ thống: Không thể kết nối với mô hình AI."
 
-            return active_chain.invoke({"context": context, "question": query})
+            answer = active_chain.invoke({"context": context, "question": query})
+            if not answer:
+                logger.warning(f"[{self._config.name.upper()}Generator] Received empty response, retrying...")
+                answer = active_chain.invoke({"context": context, "question": query})
+
+            answer = self._clean_response(answer)
+            return answer
             
         except Exception as e:
             logger.error(f"[{self._config.name.upper()}Generator] Error during generation: {e}")
@@ -260,6 +274,43 @@ class GeneratorRegistry:
             f"Available generators: {list(self._generators.keys())}.\n",
             f"Available model IDs: {list(self._id_map.keys())}.\n"
         )
+
+    def generate_with_fallback(self, query: str, search_hits: List[SearchHit], 
+                               identifier: str = 'default', fallback_identifiers: List[str] = None, 
+                               is_vanilla: bool = False) -> str:
+        primary_name = None
+        
+        try:
+            if not search_hits or len(search_hits) == 0:
+                logger.warning(f"[Generator] No relevant sources found for the given query.")
+                return "Không tìm thấy nguồn tin nào liên quan đến câu hỏi của bạn. Vui lòng thử lại với câu hỏi khác hoặc kiểm tra lại kết quả tìm kiếm."
+            
+            primary_gen = self.get_generator(identifier)
+            primary_name = next((name for name, gen in self._generators.items() if gen == primary_gen), identifier)
+            return primary_gen.generate(query, search_hits, is_vanilla)
+        except Exception as e:
+            logger.error(f"[Generator] Error during generation: {e}")
+        
+        if fallback_identifiers is None:
+            fallback_identifiers = list(self._generators.keys())
+            
+        for fallback_id in fallback_identifiers:
+            if fallback_id == primary_name:
+                continue
+            
+            try:
+                logger.info(f"[GeneratorRegistry] Attempting fallback using generator '{fallback_id}'...")
+                fallback_gen = self.get_generator(fallback_id)
+                return fallback_gen.generate(query, search_hits, is_vanilla)
+            except Exception as fallback_error:
+                logger.warning(f"[GeneratorRegistry] Fallback generator '{fallback_id}' failed or not found: {fallback_error}. Skipping to next...")
+                continue
+
+        error_msg = "Xin lỗi, hệ thống AI hiện tại đang gặp sự cố và không thể tạo câu trả lời. Vui lòng thử lại sau."
+        logger.error("[GeneratorRegistry] All generators (primary and fallbacks) failed to generate a response.")
+        return error_msg
+            
+
         
     
     def unregister_generator(self, identifier: str):
