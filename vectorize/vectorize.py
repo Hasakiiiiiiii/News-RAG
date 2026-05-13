@@ -8,21 +8,18 @@ from FlagEmbedding import BGEM3FlagModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams, SparseVector
 
-# --- ĐỊNH VỊ CHÍNH XÁC FILE .ENV ---
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dotenv_path = os.path.join(base_dir, '.env')
 load_dotenv(dotenv_path)
 
-# --- 1. CẤU HÌNH KẾT NỐI POSTGRESQL (Lấy từ .env) ---
 PG_CONFIG = {
     "dbname": os.getenv("DB_NAME"),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
     "host": os.getenv("DB_HOST"),
-    "port": int(os.getenv("DB_PORT", 5432)) # Ép kiểu số nguyên cho chắc chắn
+    "port": int(os.getenv("DB_PORT", 5432))  
 }
 
-# --- 2. CẤU HÌNH QDRANT CLOUD (Lấy từ .env) ---
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
@@ -34,9 +31,8 @@ def generate_uuid(article_id, chunk_index):
     unique_string = f"article_{article_id}_chunk_{chunk_index}"
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, unique_string))
 
-def run_vectorization():
+def run_vectorization(limit=None):
     print("[*] Đang tải mô hình BAAI/bge-m3 (Phiên bản Hybrid)...")
-    #model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
     model = BGEM3FlagModel('BAAI/bge-m3')
     
     # Kết nối lên Qdrant Cloud
@@ -63,13 +59,11 @@ def run_vectorization():
     # Khởi tạo biến rỗng để tránh lỗi UnboundLocalError
     conn = None
     cur = None
-
     try:
         conn = psycopg2.connect(**PG_CONFIG)
         cur = conn.cursor()
 
         print("[*] Đang truy xuất toàn bộ chunks từ PostgreSQL (Kèm Metadata)...")
-        # [CẬP NHẬT] JOIN thêm thời gian và tác giả
         query = """
             SELECT 
                 c.article_id, c.chunk_index, c.content, a.title, m.url,
@@ -88,12 +82,10 @@ def run_vectorization():
 
         if not all_chunks:
             print("[!] Không có chunk nào trong Warehouse.")
-            return
+            return 0
 
         print("[*] Đang đối chiếu với Qdrant để tìm các chunks mới (Xử lý hàng loạt)...")
         chunks_to_process = []
-        
-        # 1. TỐI ƯU: Truy xuất ID hàng loạt (Batch Retrieve) để check Incremental
         all_point_ids = [generate_uuid(row[0], row[1]) for row in all_chunks]
         existing_ids = set()
         
@@ -101,34 +93,34 @@ def run_vectorization():
         for i in range(0, len(all_point_ids), 1000):
             batch_ids = all_point_ids[i:i+1000]
             try:
-                # Tìm những ID đã tồn tại trên Qdrant
                 results = qdrant.retrieve(collection_name=COLLECTION_NAME, ids=batch_ids)
                 existing_ids.update([res.id for res in results])
             except Exception as e:
-                print(f"[!] Lỗi khi check Qdrant batch {i}: {e}")
-        
-        # Lọc ra những chunk thực sự chưa có mặt trên Qdrant
+                pass
+                
+        # TÌM CHUNKS MỚI VÀ GIỚI HẠN SỐ LƯỢNG (LIMIT)
         for row in all_chunks:
             point_id = generate_uuid(row[0], row[1])
             if point_id not in existing_ids:
                 chunks_to_process.append(row)
+                # Dừng tìm kiếm nếu đã gom đủ số limit (vd: 256 chunks)
+                if limit and len(chunks_to_process) >= limit:
+                    break
 
         total_new_chunks = len(chunks_to_process)
         if total_new_chunks == 0:
             print("[SUCCESS] Dữ liệu Hybrid trên Qdrant đã Up-to-date!")
-            return
+            return 0 
 
         print(f"[*] Bắt đầu Vector hóa và đẩy {total_new_chunks} chunks MỚI lên Qdrant...")
 
-        # 2. TỐI ƯU: Vector hóa hàng loạt (Batch Encoding)
-        ENCODE_BATCH_SIZE = 32 # Tùy chỉnh (16, 32, 64) dựa trên RAM/VRAM máy bạn
+        ENCODE_BATCH_SIZE = 64 
         points = []
 
         for i in range(0, total_new_chunks, ENCODE_BATCH_SIZE):
             batch_rows = chunks_to_process[i:i+ENCODE_BATCH_SIZE]
             batch_contents = [row[2] for row in batch_rows]
             
-            # Đưa cả cụm văn bản vào model để xử lý song song
             batch_output = model.encode(batch_contents, return_dense=True, return_sparse=True)
             
             batch_dense_vecs = batch_output['dense_vecs']
@@ -189,8 +181,7 @@ def run_vectorization():
                 )
                 points.append(point)
             
-            # Đẩy lên Qdrant theo lô 128 (hoặc tùy lượng tích lũy)
-            if len(points) >= 128:
+            if len(points) >= 256:
                 qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
                 print(f"  [+] Đã đẩy {min(i + ENCODE_BATCH_SIZE, total_new_chunks)}/{total_new_chunks} chunks mới lên Qdrant...")
                 points = []
@@ -201,12 +192,14 @@ def run_vectorization():
             print(f"  [+] Đã đẩy {total_new_chunks}/{total_new_chunks} chunks mới lên Qdrant...")
 
         print("\n[SUCCESS] Đã nạp thành công dữ liệu HYBRID vào Qdrant Vector DB!")
-
+        return total_new_chunks
+    
     except Exception as e:
         print(f"[ERROR] Quá trình thất bại: {e}")
+        return 0
     finally:
         if cur: cur.close()
         if conn: conn.close()
 
 if __name__ == "__main__":
-    run_vectorization()
+    run_vectorization(limit=None)

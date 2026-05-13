@@ -43,7 +43,7 @@ def init_warehouse_schema(cur, conn):
         conn.rollback()
         print(f"[ERROR] Lỗi khi nạp warehouse.sql: {e}")
 
-def run_etl_warehouse():
+def run_etl_warehouse(limit=None):
     conn = None
     cur = None
     try:
@@ -57,32 +57,24 @@ def run_etl_warehouse():
             separators=["\n\n", "\n", ".", " ", ""]
         )
 
-        # --- 1. TỐI ƯU HÓA: KÉO DANH SÁCH BÀI ĐÃ XỬ LÝ ĐỂ BỎ QUA ---
-        print("[*] Đang kiểm tra các bài báo đã tồn tại trong Warehouse...")
-        cur.execute("SELECT url_hash FROM fact_articles")
-        existing_hashes = {row[0] for row in cur.fetchall()}
-
-        # Kéo toàn bộ metadata
-        cur.execute("SELECT url_hash, title, content, url FROM article_metadata")
-        rows = cur.fetchall()
-        
-        if not rows:
-            print("[!] Không có dữ liệu trong article_metadata.")
-            return
-
-        # --- 2. TỐI ƯU HÓA: BỘ LỌC INCREMENTAL & DEDUPLICATE ---
-        seen_titles = set()
-        raw_rows = []
-        for row in rows:
-            url_hash, current_title = row[0], row[1]
-            if url_hash not in existing_hashes and current_title not in seen_titles:
-                seen_titles.add(current_title)
-                raw_rows.append(row)
+        print("[*] Đang kéo các bài báo chưa được xử lý từ article_metadata...")
+        query = """
+            SELECT m.url_hash, m.title, m.content, m.url 
+            FROM article_metadata m
+            LEFT JOIN fact_articles f ON m.url_hash = f.url_hash
+            WHERE f.url_hash IS NULL
+        """
+        # Nếu có truyền limit (chạy từ main.py), thì giới hạn số lượng kéo về
+        if limit:
+            query += f" LIMIT {limit}"
+            
+        cur.execute(query)
+        raw_rows = cur.fetchall()
 
         total_new = len(raw_rows)
         if total_new == 0:
             print("[SUCCESS] ETL đã Up-to-date! Không có bài báo mới nào cần xử lý.")
-            return
+            return 0 
 
         print(f"[*] Bắt đầu xử lý {total_new} bản ghi MỚI...")
         print("-" * 60)
@@ -91,17 +83,13 @@ def run_etl_warehouse():
         skipped_count = 0
         error_count = 0
 
-        # SỬ DỤNG ENUMERATE ĐỂ THEO DÕI TIẾN ĐỘ CHÍNH XÁC
         for idx, (url_hash, title, content_raw, url) in enumerate(raw_rows, 1):
-            
-            # Tính toán % tiến độ
             progress_percent = (idx / total_new) * 100
             progress_prefix = f"[{idx}/{total_new} - {progress_percent:.1f}%]"
 
             try:
                 data = content_raw if isinstance(content_raw, dict) else json.loads(content_raw)
 
-                # --- BỘ LỌC GÁC CỔNG ---
                 raw_authors = data.get('author', 'Unknown')
                 p_date_str = data.get('publish_date', 'Unknown')
                 if not raw_authors or raw_authors == "Unknown" or not p_date_str or p_date_str == "Unknown":
@@ -184,32 +172,26 @@ def run_etl_warehouse():
                 processed_count += 1
                 print(f"{progress_prefix} [OK] Đã xử lý: {title[:30]}...")
                 
-                # --- LƯU THEO LÔ ---
                 if processed_count % 50 == 0:
                     conn.commit()
-                    print(f" >>> [BATCH COMMIT] Đã chốt lưu {processed_count} bài vào Database!")
 
             except Exception as e:
                 conn.rollback()
                 error_count += 1
                 print(f"{progress_prefix} [ERROR] {title[:20] if title else 'Unknown'}: {e}")
 
-        # Commit nốt phần dư cuối cùng
         conn.commit()
+        print("-" * 60)
+        print(f"[SUCCESS] QUÁ TRÌNH ETL HOÀN TẤT! Đã nạp: {processed_count}")
         
-        print("-" * 60)
-        print(f"[SUCCESS] QUÁ TRÌNH ETL HOÀN TẤT!")
-        print(f"Tổng bài phát hiện: {total_new}")
-        print(f"Đã nạp thành công: {processed_count}")
-        print(f"Bị bỏ qua (Skip): {skipped_count}")
-        print(f"Bị lỗi (Error): {error_count}")
-        print("-" * 60)
+        return processed_count 
 
     except Exception as e:
         print(f"[!] Lỗi kết nối hoặc xử lý: {e}")
+        return 0
     finally:
         if cur: cur.close()
         if conn: conn.close()
 
 if __name__ == "__main__":
-    run_etl_warehouse()
+    run_etl_warehouse(limit=None)
