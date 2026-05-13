@@ -101,7 +101,7 @@ class BaseGenerator(ABC):
             
         except Exception as e:
             logger.error(f"[{self._config.name.upper()}Generator] Error during generation: {e}")
-            return f"[{self._config.name.upper()}Generator] An error occurred while generating the response. Please try again later."
+            raise RuntimeError(f"Error during generation: {e}")
     
     def cleanup(self):
         """Optional method to clean up resources, can be overridden by subclasses."""

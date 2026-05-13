@@ -56,7 +56,7 @@ class Pipeline:
             logger.exception("Pipeline execution failed")
             return GeneratorResponse(
                 query=query,
-                summary=None,
+                summary="Xin lỗi, hệ thống AI hiện tại đang gặp sự cố và không thể tạo câu trả lời. Vui lòng thử lại sau.",
                 results=[],
                 total=0,
                 duration_ms=0.0
