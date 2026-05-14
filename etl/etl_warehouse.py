@@ -57,24 +57,32 @@ def run_etl_warehouse(limit=None):
             separators=["\n\n", "\n", ".", " ", ""]
         )
 
-        print("[*] Đang kéo các bài báo chưa được xử lý từ article_metadata...")
-        query = """
-            SELECT m.url_hash, m.title, m.content, m.url 
-            FROM article_metadata m
-            LEFT JOIN fact_articles f ON m.url_hash = f.url_hash
-            WHERE f.url_hash IS NULL
-        """
-        # Nếu có truyền limit (chạy từ main.py), thì giới hạn số lượng kéo về
-        if limit:
-            query += f" LIMIT {limit}"
-            
-        cur.execute(query)
-        raw_rows = cur.fetchall()
+        # --- 1. TỐI ƯU HÓA: KÉO DANH SÁCH BÀI ĐÃ XỬ LÝ ĐỂ BỎ QUA ---
+        print("[*] Đang kiểm tra các bài báo đã tồn tại trong Warehouse...")
+        cur.execute("SELECT url_hash FROM fact_articles")
+        existing_hashes = {row[0] for row in cur.fetchall()}
+
+        # Kéo toàn bộ metadata
+        cur.execute("SELECT url_hash, title, content, url FROM article_metadata")
+        rows = cur.fetchall()
+        
+        if not rows:
+            print("[!] Không có dữ liệu trong article_metadata.")
+            return 0
+
+        # --- 2. TỐI ƯU HÓA: BỘ LỌC INCREMENTAL & DEDUPLICATE ---
+        seen_titles = set()
+        raw_rows = []
+        for row in rows:
+            url_hash, current_title = row[0], row[1]
+            if url_hash not in existing_hashes and current_title not in seen_titles:
+                seen_titles.add(current_title)
+                raw_rows.append(row)
 
         total_new = len(raw_rows)
         if total_new == 0:
             print("[SUCCESS] ETL đã Up-to-date! Không có bài báo mới nào cần xử lý.")
-            return 0 
+            return 0
 
         print(f"[*] Bắt đầu xử lý {total_new} bản ghi MỚI...")
         print("-" * 60)
@@ -90,10 +98,13 @@ def run_etl_warehouse(limit=None):
             try:
                 data = content_raw if isinstance(content_raw, dict) else json.loads(content_raw)
 
+                # --- BỘ LỌC ---
                 raw_authors = data.get('author', 'Unknown')
                 p_date_str = data.get('publish_date', 'Unknown')
                 if not raw_authors or raw_authors == "Unknown" or not p_date_str or p_date_str == "Unknown":
                     print(f"{progress_prefix} [SKIP] Thiếu Author/Date: {title[:30]}...")
+                    cur.execute("DELETE FROM article_metadata WHERE url_hash = %s", (url_hash,))
+                    conn.commit()
                     skipped_count += 1
                     continue
 
@@ -120,18 +131,27 @@ def run_etl_warehouse(limit=None):
                 source_id = cur.fetchone()[0]
 
                 # Insert Time
-                time_id = 0 
-                if p_date_str != "Unknown" and p_date_str:
+                time_id = 0
+                # Nếu Unknown hoặc rỗng -> dùng ngày hiện tại
+                if p_date_str == "Unknown" or not p_date_str:
+                    dt = datetime.now()
+                else:
                     try:
                         dt = datetime.strptime(p_date_str, "%Y-%m-%d %H:%M:%S")
-                        cur.execute("""
-                            INSERT INTO dim_time (date, day, month, year) 
-                            VALUES (%s, %s, %s, %s) ON CONFLICT (date) 
-                            DO UPDATE SET date = EXCLUDED.date RETURNING time_id
-                        """, (dt.date(), dt.day, dt.month, dt.year))
-                        time_id = cur.fetchone()[0]
-                    except: time_id = 0
+                    except:
+                        dt = datetime.now()
+                try:
+                    cur.execute("""
+                        INSERT INTO dim_time (date, day, month, year) 
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (date)
+                        DO UPDATE SET date = EXCLUDED.date
+                        RETURNING time_id
+                    """, (dt.date(), dt.day, dt.month, dt.year))
 
+                    time_id = cur.fetchone()[0]
+                except:
+                    time_id = 0
                 # Insert Content
                 cur.execute("""
                     INSERT INTO dim_content (url_hash, content) 
@@ -148,18 +168,67 @@ def run_etl_warehouse(limit=None):
                     RETURNING article_id
                 """, (url_hash, title, source_id, time_id, content_id, len(cleaned_text)))
                 article_id = cur.fetchone()[0]
-
+                
                 # Xử lý Author
-                cur.execute("DELETE FROM fact_article_authors WHERE article_id = %s", (article_id,))
+                cur.execute(
+                    "DELETE FROM fact_article_authors WHERE article_id = %s",
+                    (article_id,)
+                )
+                delete_article = False
                 for name in author_list:
-                    curr_name = name if name else "Unknown"
+                    curr_name = name.strip() if name else "Unknown"
+                    # Detect author không hợp lệ
+                    invalid_author = (
+                        len(curr_name) > 40
+                        or "http" in curr_name.lower()
+                        or "/" in curr_name
+                        or "|" in curr_name
+                        or "@" in curr_name
+                    )
+                    # Nếu author rác -> xóa article
+                    if invalid_author:
+                        print(f"[WARNING] Author không hợp lệ: {curr_name}")
+                        # Xóa mapping author
+                        cur.execute(
+                            "DELETE FROM fact_article_authors WHERE article_id = %s",
+                            (article_id,)
+                        )
+                        # Xóa chunks nếu đã tồn tại
+                        cur.execute(
+                            "DELETE FROM fact_chunks WHERE article_id = %s",
+                            (article_id,)
+                        )
+                        # Xóa article
+                        cur.execute(
+                            "DELETE FROM fact_articles WHERE article_id = %s",
+                            (article_id,)
+                        )
+                        delete_article = True
+                        break
+                    # Insert author hợp lệ
                     cur.execute("""
-                        INSERT INTO dim_author (author_name) VALUES (%s) 
-                        ON CONFLICT (author_name) DO UPDATE SET author_name = EXCLUDED.author_name 
+                        INSERT INTO dim_author (author_name)
+                        VALUES (%s)
+                        ON CONFLICT (author_name)
+                        DO UPDATE SET author_name = EXCLUDED.author_name
                         RETURNING author_id
                     """, (curr_name,))
                     curr_auth_id = cur.fetchone()[0]
-                    cur.execute("INSERT INTO fact_article_authors (article_id, author_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (article_id, curr_auth_id))
+                    cur.execute("""
+                        INSERT INTO fact_article_authors (article_id, author_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING
+                    """, (article_id, curr_auth_id))
+                # Nếu article bị xóa thì bỏ qua xử lý tiếp
+                if delete_article:
+                    cur.execute("DELETE FROM article_metadata WHERE url_hash = %s", (url_hash,))
+                    conn.commit()
+                    print(
+                        f"{progress_prefix} [SKIP] "
+                        f"Bài bị xóa do Author không hợp lệ: {title[:30]}..."
+                    )
+                    skipped_count += 1
+                    continue
 
                 # Insert Chunks
                 cur.execute("DELETE FROM fact_chunks WHERE article_id = %s", (article_id,))
@@ -172,19 +241,27 @@ def run_etl_warehouse(limit=None):
                 processed_count += 1
                 print(f"{progress_prefix} [OK] Đã xử lý: {title[:30]}...")
                 
+                # --- LƯU THEO LÔ ---
                 if processed_count % 50 == 0:
                     conn.commit()
+                    print(f" >>> [BATCH COMMIT] Đã chốt lưu {processed_count} bài vào Database!")
 
             except Exception as e:
                 conn.rollback()
                 error_count += 1
                 print(f"{progress_prefix} [ERROR] {title[:20] if title else 'Unknown'}: {e}")
 
+        # Commit nốt phần dư cuối cùng
         conn.commit()
-        print("-" * 60)
-        print(f"[SUCCESS] QUÁ TRÌNH ETL HOÀN TẤT! Đã nạp: {processed_count}")
         
-        return processed_count 
+        print("-" * 60)
+        print(f"[SUCCESS] QUÁ TRÌNH ETL HOÀN TẤT!")
+        print(f"Tổng bài phát hiện: {total_new}")
+        print(f"Đã nạp thành công: {processed_count}")
+        print(f"Bị bỏ qua (Skip): {skipped_count}")
+        print(f"Bị lỗi (Error): {error_count}")
+        print("-" * 60)
+        return processed_count
 
     except Exception as e:
         print(f"[!] Lỗi kết nối hoặc xử lý: {e}")
@@ -194,4 +271,4 @@ def run_etl_warehouse(limit=None):
         if conn: conn.close()
 
 if __name__ == "__main__":
-    run_etl_warehouse(limit=None)
+    run_etl_warehouse()
