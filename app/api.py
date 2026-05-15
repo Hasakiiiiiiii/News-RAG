@@ -81,12 +81,8 @@ async def search(request: SearchRequest):
         raise HTTPException(status_code=400, detail="Query is required")
 
     try:
-        response = p.ask(request.query.strip(), model=request.model)
-
-        # Clean <think> tags from summary (case-insensitive, aggressive)
-        if hasattr(response, 'summary') and response.summary:
-            response.summary = re.sub(r'(?i)<think>.*?(?:</think>|$)', '', response.summary, flags=re.DOTALL).strip()
-
+        response = p.generate_response(request.query.strip(), model=request.model)
+        
         separator = "-" * 30
         results_list = getattr(response, 'results', []) or []
         ref_list = [f"[{i+1}] {hit.title} | Link: {hit.url}" for i, hit in enumerate(results_list)]

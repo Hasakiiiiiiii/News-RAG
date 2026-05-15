@@ -9,7 +9,7 @@ UVICORN = venv/bin/uvicorn
 
 # --- LỆNH CHÍNH ---
 
-.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval test-vani
+.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval test-vani auto full run-crawl run-etl run-vectorize
 
 # Khởi tạo môi trường lần đầu
 setup:
@@ -37,6 +37,26 @@ down:
 
 restart: down up
 
+auto:
+	@echo "[PIPELINE] Bắt đầu chạy chế độ TỰ ĐỘNG (3 ca/ngày)..."
+	$(PYTHON) main.py --mode auto
+
+full:
+	@echo "[PIPELINE] Chạy 1 vòng hoàn chỉnh: Crawl (10p) -> ETL -> Vectorize..."
+	$(PYTHON) main.py --mode full
+
+run-crawl:
+	@echo "[PIPELINE] Chỉ chạy Crawl (10p)..."
+	$(PYTHON) main.py --mode crawl
+
+run-etl:
+	@echo "[PIPELINE] Chỉ chạy ETL (nạp vào Warehouse)..."
+	$(PYTHON) main.py --mode etl
+
+run-vectorize:
+	@echo "[PIPELINE] Chỉ chạy Vectorize (đẩy lên Qdrant)..."
+	$(PYTHON) main.py --mode vectorize
+
 # Vận hành hệ thống
 crawl:
 	export PYTHONPATH=. && $(SCRAPY) crawl news_rag_spider
@@ -44,8 +64,7 @@ crawl:
 consume:
 	$(PYTHON) consumer/consumer.py
 
-main:
-	$(PYTHON) main.py
+main: full
 
 etl:
 	$(PYTHON) etl/etl_warehouse.py
