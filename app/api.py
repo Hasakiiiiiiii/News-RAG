@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,12 +82,16 @@ async def search(request: SearchRequest):
 
     try:
         response = p.ask(request.query.strip(), model=request.model)
-        
+
+        # Clean <think> tags from summary (case-insensitive, aggressive)
+        if hasattr(response, 'summary') and response.summary:
+            response.summary = re.sub(r'(?i)<think>.*?(?:</think>|$)', '', response.summary, flags=re.DOTALL).strip()
+
         separator = "-" * 30
         results_list = getattr(response, 'results', []) or []
         ref_list = [f"[{i+1}] {hit.title} | Link: {hit.url}" for i, hit in enumerate(results_list)]
         references_section = "\n\nReferences Used:\n" + "\n".join(ref_list) if ref_list else ""
-        
+
         summary = response.summary if response else "Không tìm thấy câu trả lời."
         total = getattr(response, 'total', 0)
         duration = getattr(response, 'duration_ms', 0)
@@ -103,7 +108,7 @@ async def search(request: SearchRequest):
                 "results": results_list,
                 "total": total,
                 "duration_ms": duration
-            }, 
+            },
             "formatted_answer": formatted_output
         }
     except Exception as e:
@@ -116,14 +121,14 @@ async def retrieve_only(request: SearchRequest):
     """(Từ file run_real_search): Test hệ thống tìm kiếm thuần túy trên Qdrant Cloud"""
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query is required")
-        
+
     try:
         r = get_retriever()
         results = r.search(request.query.strip())
-        
+
         if not results:
             return {"message": "Không tìm thấy kết quả từ Qdrant.", "results": []}
-            
+
         formatted_results = []
         for hit in results:
             formatted_results.append({
@@ -132,7 +137,7 @@ async def retrieve_only(request: SearchRequest):
                 "score": round(hit.score, 4),
                 "content_snippet": hit.content[:250] + "..." # Cắt ngắn để dễ nhìn
             })
-            
+
         return {
             "query": request.query,
             "total_found": len(formatted_results),
@@ -153,7 +158,7 @@ async def compare_all_models(request: SearchRequest):
         r = get_retriever()
         query = request.query.strip()
         search_hits = r.search(query)
-        
+
         if not search_hits:
             return {"message": "Không tìm thấy context từ database, bỏ qua gọi LLM."}
 
@@ -164,12 +169,24 @@ async def compare_all_models(request: SearchRequest):
             model_name = model_info.get("name")
             if not model_name:
                 continue
-                
+
             try:
                 gen = generator_registry.get_generator(model_name)
-                # Lưu ý: Code cũ generator trả về obj hay text phụ thuộc vào generator.generate()
-                # Thường nó trả về một string hoặc object chứa answer
                 response = gen.generate(query, search_hits)
+
+                # Robust clean <think> tags from any possible response format
+                def clean_text(text):
+                    if isinstance(text, str):
+                        return re.sub(r'(?i)<think>.*?(?:</think>|$)', '', text, flags=re.DOTALL).strip()
+                    return text
+
+                if isinstance(response, str):
+                    response = clean_text(response)
+                elif isinstance(response, dict) and 'summary' in response:
+                    response['summary'] = clean_text(response['summary'])
+                elif hasattr(response, 'summary'):
+                     response.summary = clean_text(response.summary)
+
                 comparison_results.append({
                     "model": model_name,
                     "provider": model_info.get("provider", "unknown"),
@@ -208,13 +225,13 @@ async def list_articles(q: Optional[str] = None, limit: int = 10, offset: int = 
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Câu query chuẩn Data Warehouse: Kết nối Fact và các Dim
         base_query = """
-            SELECT 
-                f.article_id AS id, 
-                f.title, 
-                m.url, 
+            SELECT
+                f.article_id AS id,
+                f.title,
+                m.url,
                 s.domain AS source,
                 t.date AS published_date,
                 STRING_AGG(a.author_name, ' & ') AS author,
@@ -233,18 +250,18 @@ async def list_articles(q: Optional[str] = None, limit: int = 10, offset: int = 
             query = base_query + """
                 WHERE f.title ILIKE %s
                 GROUP BY f.article_id, f.title, m.url, s.domain, t.date
-                ORDER BY t.date DESC 
+                ORDER BY t.date DESC
                 LIMIT %s OFFSET %s
             """
             cur.execute(query, (search_term, limit, offset))
         else:
             query = base_query + """
                 GROUP BY f.article_id, f.title, m.url, s.domain, t.date
-                ORDER BY t.date DESC 
+                ORDER BY t.date DESC
                 LIMIT %s OFFSET %s
             """
             cur.execute(query, (limit, offset))
-            
+
         return cur.fetchall()
     finally:
         cur.close()
@@ -255,11 +272,11 @@ async def get_stats():
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # 1. Đếm Nguồn tin
         cur.execute("SELECT COUNT(*) as count FROM dim_source")
         s_count = cur.fetchone()['count']
-        
+
         # 2. Đếm tổng số bài báo
         cur.execute("SELECT COUNT(*) as count FROM article_metadata")
         a_count = cur.fetchone()['count']
@@ -325,7 +342,7 @@ async def get_stats():
         latest_articles = cur.fetchall()
 
         return {
-            "total_sources": s_count, 
+            "total_sources": s_count,
             "total_articles": a_count,
             "total_vectors": v_count,
             "top_authors": top_authors,
@@ -336,7 +353,7 @@ async def get_stats():
     finally:
         cur.close()
         conn.close()
-        
+
 @app.get("/models")
 async def list_models():
     return {"models": generator_registry.list_generators()}
@@ -358,13 +375,13 @@ async def get_monitor_metrics():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         # Bắt try-except phòng trường hợp bạn chưa chạy ETL tạo bảng fact_articles
         cur.execute("""
-            SELECT 
+            SELECT
                 (SELECT COUNT(*) FROM fact_articles) AS bai_bao,
                 (SELECT COUNT(*) FROM fact_chunks) AS tong_chunks,
                 (SELECT COUNT(*) FROM article_metadata WHERE publish_date = 'Unknown') AS loi_ngay
         """)
         data = cur.fetchone()
-        
+
         bai_bao = data['bai_bao'] if data and data['bai_bao'] else 0
         chunks = data['tong_chunks'] if data and data['tong_chunks'] else 0
         loi_ngay = data['loi_ngay'] if data and data['loi_ngay'] else 0
@@ -390,11 +407,11 @@ async def get_recent_authors():
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
-            SELECT f.title, STRING_AGG(a.author_name, ' & ') as authors 
-            FROM fact_articles f 
-            JOIN fact_article_authors faa ON f.article_id = faa.article_id 
-            JOIN dim_author a ON faa.author_id = a.author_id 
-            GROUP BY f.article_id, f.title 
+            SELECT f.title, STRING_AGG(a.author_name, ' & ') as authors
+            FROM fact_articles f
+            JOIN fact_article_authors faa ON f.article_id = faa.article_id
+            JOIN dim_author a ON faa.author_id = a.author_id
+            GROUP BY f.article_id, f.title
             ORDER BY f.article_id DESC LIMIT 10;
         """)
         return cur.fetchall()
@@ -412,8 +429,8 @@ async def get_latest_chunks():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
             SELECT chunk_index, content
-            FROM fact_chunks 
-            WHERE article_id = (SELECT MAX(article_id) FROM fact_articles) 
+            FROM fact_chunks
+            WHERE article_id = (SELECT MAX(article_id) FROM fact_articles)
             ORDER BY chunk_index LIMIT 5;
         """)
         return cur.fetchall()
@@ -422,20 +439,28 @@ async def get_latest_chunks():
     finally:
         cur.close()
         conn.close()
-        
+
 @app.get("/pipeline/status")
 async def get_pipeline_status():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # 1. Kiểm tra số lượng tin nhắn chờ trong DB (giả sử bạn có bảng staging hoặc status)
         cur.execute("SELECT count(*) FROM fact_articles")
         total_articles = cur.fetchone()['count']
-        
-        # 2. Kiểm tra log ETL gần nhất (giả sử bạn có bảng log)
-        # cur.execute("SELECT status, timestamp FROM etl_logs ORDER BY timestamp DESC LIMIT 5")
-        # logs = cur.fetchall()
+
+        # Lấy sơ đồ bảng thực tế từ DB
+        cur.execute("""
+            SELECT
+                t.table_name,
+                json_agg(json_build_object('name', c.column_name, 'type', c.data_type)) as columns
+            FROM information_schema.tables t
+            JOIN information_schema.columns c ON t.table_name = c.table_name
+            WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+            GROUP BY t.table_name
+        """)
+        db_schema = cur.fetchall()
 
         return {
             "services": {
@@ -448,6 +473,16 @@ async def get_pipeline_status():
                 "total_processed": total_articles,
                 "last_run": time.strftime("%H:%M:%S")
             },
+            "db_schema": db_schema,
+            "pipeline_steps": [
+                {"id": "s1", "name": "Load .env", "type": "config"},
+                {"id": "s2", "name": "Connect DB", "type": "db"},
+                {"id": "s3", "name": "Init Schema", "type": "db"},
+                {"id": "s4", "name": "Fetch Metadata", "type": "db"},
+                {"id": "s5", "name": "Clean Text", "type": "transform"},
+                {"id": "s6", "name": "Split Chunks", "type": "transform"},
+                {"id": "s7", "name": "Batch Insert", "type": "load"}
+            ],
             "components": [
                 {"name": "Crawler", "status": "idle", "processed": 120},
                 {"name": "Kafka Producer", "status": "active", "processed": 120},
@@ -460,24 +495,24 @@ async def get_pipeline_status():
     finally:
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
-        
+
 @app.get("/articles/{article_id}/chunks")
 async def get_article_chunks_from_db(article_id: int):
     """Lấy danh sách các chunks của một bài báo trực tiếp từ Postgres Data Warehouse"""
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Lấy dữ liệu từ bảng fact_chunks
         cur.execute("""
-            SELECT chunk_index, content 
-            FROM fact_chunks 
-            WHERE article_id = %s 
+            SELECT chunk_index, content
+            FROM fact_chunks
+            WHERE article_id = %s
             ORDER BY chunk_index ASC
         """, (article_id,))
-        
+
         records = cur.fetchall()
-        
+
         # Format lại dữ liệu cho khớp với giao diện React
         formatted_chunks = []
         for row in records:
@@ -485,7 +520,7 @@ async def get_article_chunks_from_db(article_id: int):
                 "chunk_id": f"idx_{row['chunk_index']}",
                 "text": row['content']
             })
-            
+
         return {"status": "success", "total_chunks": len(formatted_chunks), "chunks": formatted_chunks}
     except Exception as e:
         logger.error(f"Lỗi khi lấy chunks cho article {article_id}: {e}")

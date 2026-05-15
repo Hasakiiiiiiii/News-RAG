@@ -169,20 +169,20 @@ export default function ChatPage() {
 
     if (msg.type === 'rag') {
       return (
-        <div className="w-full">
+        <>
           {/* Parse Markdown thay vì text thuần */}
-          <div 
-            className="prose max-w-none text-sm text-slate-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: marked(msg.content || "") }} 
+          <div
+            className="prose prose-slate prose-sm max-w-none text-slate-700 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: marked(msg.content || "") }}
           />
           
           {msg.sources && msg.sources.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-slate-100 w-full">
               <h3 className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">🔗 Nguồn tham khảo</h3>
               <div className="flex flex-wrap gap-2">
                 {msg.sources.map((s, i) => (
-                  <a key={i} href={s.url} target="_blank" rel="noreferrer" 
-                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs rounded-md transition truncate max-w-[250px]" 
+                  <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs rounded-md transition truncate max-w-[200px]"
                      title={s.title}>
                     [{i+1}] {s.title}
                   </a>
@@ -190,7 +190,7 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-        </div>
+        </>
       );
     }
 
@@ -323,15 +323,15 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {/* Message Bubble (Mở rộng max-width nếu là compare hoặc retrieve) */}
+              {/* Message Bubble */}
               <div className={`${
-                msg.type === 'compare' || msg.type === 'retrieve' ? 'w-full md:max-w-[85%]' : 'max-w-[75%]'
-              } rounded-2xl px-5 py-4 shadow-sm ${
+                msg.type === 'compare' || msg.type === 'retrieve' ? 'w-full' : 'w-fit max-w-[85%]'
+              } rounded-2xl px-5 py-3.5 shadow-sm transition-all ${
                 msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'
               }`}>
                 {/* Render nội dung linh hoạt */}
                 {msg.role === 'user' ? (
-                  <div className="text-sm font-medium whitespace-pre-wrap">{msg.content}</div>
+                  <div className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                 ) : (
                   renderAIMessageContent(msg)
                 )}
