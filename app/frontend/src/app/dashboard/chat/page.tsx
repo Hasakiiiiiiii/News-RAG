@@ -27,6 +27,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -39,7 +40,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [actionType, setActionType] = useState<string>(''); // Lưu trạng thái đang load cái gì
-  
+
   const [models, setModels] = useState<any[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('default');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -51,26 +52,36 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const res = await fetch('http://localhost:8000/models');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.models && data.models.length > 0) {
-            setModels(data.models);
-            setSelectedModel(data.models[0].name);
+    if (isMounted) {
+      const fetchModels = async () => {
+        try {
+          const res = await fetch('http://localhost:8000/models');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.models && data.models.length > 0) {
+              setModels(data.models);
+              setSelectedModel(data.models[0].name);
+            }
           }
+        } catch (error) {
+          console.error("Lỗi lấy danh sách models:", error);
         }
-      } catch (error) {
-        console.error("Lỗi lấy danh sách models:", error);
-      }
-    };
-    fetchModels();
-  }, []);
+      };
+      fetchModels();
+    }
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return <div className="p-6 md:p-8 bg-[#f8fafc] min-h-screen flex flex-col h-[calc(100vh-4rem)]"></div>;
+  }
 
   const filterThinkingProcess = (content: string) => {
     return (content || "").replace(/<think>[\s\S]*?<\/think>/g, '').trim();
@@ -256,7 +267,7 @@ export default function ChatPage() {
         <div className="relative">
           <button 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            disabled={isLoading || models.length === 0}
+            disabled={isMounted ? (isLoading || models.length === 0) : true}
             className="flex items-center gap-3 bg-white hover:bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
           >
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-50/50 border border-indigo-100 text-indigo-600">

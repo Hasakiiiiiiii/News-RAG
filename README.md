@@ -1,169 +1,148 @@
-# News RAG (Crawler + Kafka + PostgreSQL + Qdrant)
+# News RAG: Nền tảng Tổng hợp Dữ liệu và Phân tích AI
+
+> Hệ thống Data Pipeline end-to-end: Tự động thu thập tin tức, xử lý luồng dữ liệu thời gian thực, chuẩn hóa kho dữ liệu và truy vấn thông minh với kiến trúc RAG.
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Scrapy](https://img.shields.io/badge/Scrapy-Crawler-green.svg)
+![Next.js](https://img.shields.io/badge/Next.js-Frontend-black.svg)
+![AWS](https://img.shields.io/badge/AWS-Fargate%20%26%20ECS-orange.svg)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%20%26%20Qdrant-336791.svg)
+
+---
 
 ## Tổng quan dự án
-News RAG là hệ thống Data Pipeline end-to-end: tự động thu thập tin tức, xử lý luồng dữ liệu thời gian thực (Streaming) qua Kafka, chuẩn hóa vào Data Warehouse (PostgreSQL) và nhúng (Embedding) thành Vector đưa lên Qdrant.
-Dự án cung cấp nền tảng backend vững chắc để xây dựng các ứng dụng Chatbot AI (Retrieval-Augmented Generation - RAG) có khả năng trả lời câu hỏi dựa trên tin tức thực tế.
 
-## Mục tiêu
-- **Cào tin tức tự động** từ các trang báo điện tử lớn (VnExpress, Dân Trí, VietnamNet).
-- **Streaming:** Đẩy JSON bài viết vào topic Kafka `news_raw` để đảm bảo luồng dữ liệu không bị thất thoát.
-- **Consuming & Dedup:** Đọc dữ liệu từ Kafka, loại bỏ trùng lặp bằng URL Hash và nạp vào bảng PostgreSQL `article_metadata`.
-- **ETL & Data Warehouse:** Làm sạch HTML, chia nhỏ nội dung (Chunking) và lưu trữ theo chuẩn mô hình sao (Star Schema).
-- **Vector DB:** Nhúng (Vectorize) các chunks dữ liệu bằng mô hình `BAAI/bge-m3` và lưu trữ trên Qdrant để phục vụ tìm kiếm ngữ nghĩa.
+News RAG là một hệ thống phân tích dữ liệu toàn diện được thiết kế để giải quyết bài toán thu thập và xử lý tin tức từ các nguồn báo chí điện tử lớn (VnExpress, Dân Trí, VietnamNet). Dự án cung cấp nền tảng backend vững chắc để xây dựng các ứng dụng Chatbot AI có khả năng trả lời câu hỏi dựa trên ngữ cảnh thực tế, đảm bảo tính chính xác và cập nhật của thông tin.
 
-## Cấu trúc thư mục
-Dự án được thiết kế theo module hóa chuẩn Data Engineering:
+### Các thành tựu thực tế đạt được
+
+- **Triển khai Cloud thành công**: Toàn bộ hệ thống đã được vận hành trên AWS Sydney sử dụng kiến trúc Serverless (Fargate).
+- **Hệ thống Web trực tuyến**: Giao diện người dùng hiện đại đã khả dụng tại địa chỉ: [http://bigdata-alb-611625925.ap-southeast-2.elb.amazonaws.com](http://bigdata-alb-611625925.ap-southeast-2.elb.amazonaws.com)
+- **Tự động hóa hoàn toàn**: Pipeline dữ liệu được kích hoạt tự động hàng ngày thông qua AWS EventBridge.
+- **Tối ưu hóa tài nguyên**: Xây dựng quy trình CI/CD rút gọn với Docker và Terraform, giúp triển khai nhanh chóng và tiết kiệm chi phí.
+
+---
+
+## Các tính năng nổi bật
+
+### Hệ thống Pipeline dữ liệu
+- Tự động hóa hoàn toàn: Quy trình từ thu thập đến lưu trữ được điều phối tự động.
+- Xử lý ETL chuyên sâu: Làm sạch HTML, loại bỏ trùng lặp bằng URL Hash và chia nhỏ nội dung (Chunking).
+- Lưu trữ đa tầng: Quản lý dữ liệu từ giai đoạn thô (Landing) đến giai đoạn tinh lọc (Warehouse).
+
+### Hệ thống truy vấn AI (RAG)
+- Hỗ trợ đa mô hình: Tích hợp linh hoạt Groq (Qwen, Llama), Google Gemini, OpenAI và Ollama.
+- Cơ chế Scaling LLM: Cho phép thay đổi số lượng và loại mô hình chỉ thông qua file cấu hình .env.
+- Generator Registry: Quản lý tập trung các thực thể mô hình thông qua Pattern Singleton và Registry.
+- Tìm kiếm lai (Hybrid Search): Kết hợp tìm kiếm vector và tìm kiếm truyền thống để tối ưu kết quả.
+
+### Giao diện và Giám sát
+- Dashboard tương tác: Hiển thị thống kê dữ liệu và trạng thái vận hành của hệ thống.
+- Pipeline Monitor: Giám sát thời gian thực các luồng dữ liệu đang chạy trên Cloud.
+- AI Chat Interface: Giao diện trò chuyện thông minh với khả năng trích dẫn nguồn tin tức.
+
+---
+
+## Kiến trúc hệ thống
+
+```text
+┌────────────────┐      ┌────────────────┐      ┌────────────────┐
+│ Nguồn dữ liệu  │─────▶│ Lớp Thu thập   │─────▶│ Lớp Xử lý      │
+│ (Báo điện tử)  │      │ (Scrapy/Kafka) │      │ (ETL/Warehouse)│
+└────────────────┘      └────────────────┘      └──────┬─────────┘
+                                                       │
+                                                       ▼
+┌────────────────┐      ┌────────────────┐      ┌────────────────┐
+│ Giao diện      │      │ Hệ thống RAG   │      │ Lưu trữ Vector │
+│ (Next.js App)  │◀─────│ (AI Engine)    │◀─────│ (Qdrant DB)    │
+└──────┬─────────┘      └────────────────┘      └────────────────┘
+       │
+       ▼
+┌────────────────┐
+│ Người dùng     │
+│ (Hỏi đáp AI)   │
+└────────────────┘
+```
+
+---
+
+## Cấu trúc thư mục chi tiết
+
+Dự án được thiết kế theo tiêu chuẩn module hóa Data Engineering:
+
 ```text
 NEWS-RAG/
-├── app/                    # Chứa ứng dụng giao diện (Streamlit/FastAPI)
-│   └── dashboard.py
-├── config/                 # Cấu hình tập trung (config_site.json)
-│   └── config_site.json    
-├── consumer/               # Pipeline xử lý dữ liệu Kafka sang DB thô
+├── app/                    # Ứng dụng giao diện (Next.js / Dashboard)
+│   └── src/                # Mã nguồn frontend và các components
+├── config/                 # Cấu hình tập trung hệ thống
+│   └── config_site.json    # Danh sách các trang báo cần thu thập
+├── consumer/               # Pipeline xử lý dữ liệu từ Kafka sang Database thô
 │   └── consumer.py
 ├── crawler/                # Lõi Scrapy (Spiders, Pipelines, Settings)
 │   ├── spiders/
-│   │   ├── __init__.py     
-│   │   └── spider.py       # Spider cào link và trích nội dung bài với `newspaper`
-│   ├── __init__.py
-│   ├── pipelines.py
-│   └── settings.py
-├── database/               # Script khởi tạo cấu trúc Data Warehouse (warehouse.sql)
-│   └── warehouse.sql       
-├── etl/                    # Tiến trình Transform & Load (etl_warehouse.py)
-│   └── etl_warehouse.py    
-├── vectorize/              # Xử lý nhúng AI và giao tiếp với Qdrant Vector DB
-│   ├── reset_qdrant.py
-│   ├── test_search.py
-│   └── vectorize.py
-│──  search/
-│  ├── __init__.py          # Khởi tạo module, export các class chính (Pipeline, generator_registry)
-│  ├── config.py            # Quản lý cấu hình LLM, API Key, Scaling (Pydantic Settings)
-│  ├── engine.py            # Chứa class Pipeline - Điều phối luồng (Retriever -> Generator)
-│  ├── generator.py         # Lõi Generator: Registry, Singleton, Base Classes cho các AI Model
-│  ├── retriever.py         # Logic kết nối Qdrant, thực hiện Vector Search để lấy Context
-│  ├── prompts.py           # Quản lý các System Prompt mẫu để tối ưu câu trả lời tiếng Việt
-│  ├── schemas.py           # Định nghĩa cấu hình dữ liệu (Pydantic Models: SearchHit, GeneratorResponse)
-│  ├── logger_setup.py      # Cấu hình logging tập trung (Log ra console và file app.log)
-│  ├── utils.py             # Các hàm bổ trợ (xử lý chuỗi, tính thời gian, format văn bản)
-│  └── app.log              # File lưu trữ vết (logs) của hệ thống khi vận hành         
-├── .gitignore
-├── docker-compose.yml
-├── main.py                 # File khởi chạy Orchestrator 
-├── Makefile                # Bộ lệnh tự động hóa vận hành hệ thống
-├── README.md               
-├── requirements.txt        
-└── scrapy.cfg
+│   │   └── spider.py       # Lõi thu thập link và trích xuất nội dung
+│   ├── pipelines.py        # Xử lý dữ liệu sau khi thu thập
+│   └── settings.py         # Cấu hình Scrapy (User-Agent, Delay...)
+├── database/               # Scripts khởi tạo cấu trúc dữ liệu
+│   └── warehouse.sql       # Định nghĩa Star Schema cho Data Warehouse
+├── etl/                    # Tiến trình Biến đổi và Nạp dữ liệu (Transform & Load)
+│   └── etl_warehouse.py    # Script ETL chính
+├── vectorize/              # Xử lý nhúng AI và Vector Database
+│   ├── vectorize.py        # Chuyển đổi văn bản sang Vector và đẩy lên Qdrant
+│   └── reset_qdrant.py     # Xóa và khởi tạo lại bộ nhớ Vector
+├── search/                 # Hệ thống truy vấn RAG và tích hợp LLM
+│   ├── engine.py           # Điều phối luồng (Retriever -> Generator)
+│   ├── generator.py        # Quản lý các mô hình ngôn ngữ lớn (OpenAI, Gemini...)
+│   ├── retriever.py        # Logic kết nối và tìm kiếm trên Qdrant
+│   ├── prompts.py          # Quản lý các mẫu gợi ý cho AI
+│   └── schemas.py          # Định nghĩa cấu trúc dữ liệu Pydantic
+├── main.tf                 # Cấu hình hạ tầng Cloud (Terraform)
+├── deploy.sh               # Script triển khai tự động lên AWS Sydney
+├── Dockerfile              # Đóng gói mã nguồn hệ thống
+└── requirements.txt        # Danh sách thư viện Python cần thiết
 ```
-
-##  Chuẩn bị & chạy
-### 1) Cài dependencies Python
-```bash
-make setup
-```
-
-### 2) Khởi động Docker Compose
-```bash
-make up
-make down #Nếu muốn tắt
-make restart #Để reset docker
-```
-
-### 3) Tạo bảng PostgreSQL (không cần nữa nhưng mà t lười xóa ai rảnh thì xóa hộ với)
-```bash
-docker exec -it postgres_news_rag psql -U newsrag -d news_rag -c "CREATE TABLE IF NOT EXISTS article_metadata (url_hash text PRIMARY KEY, url text, title text, content jsonb, author text, publish_date text);"
-```
-
-### 4) Chạy pipeline
-```bash
-make main
-```
-với
-### 5) Kiểm tra dữ liệu PostgreSQL
-```bash
-python init_db/test_db.py" 
-```
-
-### 6) ETL dữ liệu nạp vào schema
-```bash
-make etl
-```
-
-### 7) Kiểm tra dữ liệu trong schema
-```bash
-streamlit run app/dashboard.py
-```
-
-### 8) Nhúng Vector và đẩy lên Qdrant (Vectorize)
-```bash
-make vectorize
-```
-
-```
-## Lệnh kiểm tra & Tiện ích (Makefile & SQL)
-```bash
-# Xem tổng số bài báo hiện có trong Database thô
-make db-count
-
-# Xem nhanh 5 tin đang chạy trong Kafka
-make kafka-peek
-
-# Dọn dẹp các file rác (cache) sinh ra trong quá trình chạy code
-make clean
-
-# Xóa sạch bộ nhớ Vector DB trên Qdrant
-make reset_qdrant
-```
-### 9) Search & RAG (Hệ thống truy vấn AI)
-Đây là tầng ứng dụng cuối cùng, cho phép người dùng hỏi đáp dựa trên toàn bộ dữ liệu tin tức đã được nhúng (vectorize). Hệ thống hỗ trợ Scaling LLM - cho phép chạy song song nhiều mô hình khác nhau để so sánh kết quả.
-**Tính năng chính:**
-***Multi-Model Support:*** Tích hợp linh hoạt Groq (Qwen, Llama), Google Gemini, OpenAI và Ollama (Local).
-***Generator Registry:*** Quản lý tập trung các instance model thông qua Pattern Singleton và Registry.
-***Scaling:*** Thay đổi số lượng và loại model chỉ bằng cách chỉnh sửa file .env mà không cần sửa code.
-**Quy trình:**
-1. Query Processing: Nhận câu hỏi từ người dùng thông qua Pipeline.
-2. Retrieval: Retriever thực hiện tìm kiếm ngữ nghĩa trên Qdrant để lấy ra Top-K đoạn tin tức liên quan nhất.
-3. Augmentation: Toàn bộ ngữ cảnh (Context) được format và đưa vào Prompt chuyên dụng.
-4. Generation: GeneratorRegistry điều phối model LLM được chọn để tổng hợp thông tin và trả lời người dùng bằng tiếng Việt.
-| Lệnh | Mô tả |
-| :--- | :--- |
-| `make test-interactive` | Khởi động giao diện chat tương tác CLI (nhập liệu từ bàn phím). |
-| `make test-gen` | Kiểm tra riêng lẻ khả năng phản hồi của các Generator. |
-| `make test-pipeline` | Chạy kiểm tra tích hợp toàn bộ luồng từ Retrieval đến Generation. |
-
-
-##  Cấu hình trang cào
-Mở `crawler/spiders/config_site.json` và sửa danh sách URL (JSON array):
-```json
-[
-  "[https://vnexpress.net/](https://vnexpress.net/)", 
-  "[https://dantri.com.vn/](https://dantri.com.vn/)", 
-  "[https://vietnamnet.vn/](https://vietnamnet.vn/)"
-]
-```
-
-
-##  Chi tiết luồng dữ liệu
-1. Spider bắt đầu từ `config_site.json`.
-2. Duyệt link: nếu link `.html` là bài viết thì gọi `parse_article`; nếu link chuyên mục thì tiếp tục parse.
-3. `parse_article` dùng `newspaper.Article` parse nội dung, yield item gồm URL, tiêu đề, nội dung, tác giả, ngày xuất bản.
-4. `KafkaPipeline` gửi item JSON vào topic `news_raw`.
-5. `consumer` đọc topic, hash URL và insert vào `article_metadata` với `ON CONFLICT DO NOTHING` để tránh trùng.
-6. `init_warehouse_schema` trong `etl_warehouse` đọc dữ liệu từ file sql để khởi tạo các bảng cần thiết.
-7. `run_etl_warehouse` trong `etl_warehouse` khởi tạo ID = 0 cho author và publish_date 'Unknown', làm sạch dữ liệu, cắt chunk nội dung, nạp vào các bảng tương ứng.
-8. Vectorizing: `vectorize.py` cho các chunks từ DB, chạy qua mô hình BAAI/bge-m3 để tạo mảng Vector 1024 chiều, gói cùng metadata (URL, Title, Content) thành Payload và upsert lên Qdrant.
-
-##  Lưu ý quan trọng
-- Nếu Kafka hoặc PostgreSQL không kết nối được, kiểm tra trạng thái container và cổng.
-- `consumer/consumer.py` đang kết nối Kafka `localhost:9092` và PostgreSQL host `localhost`; chạy trên host hoặc container khác cần chỉnh lại.
-- Spiders hiện chỉ parse `vnexpress.net` trong parse_article, nếu muốn mở rộng cần điều chỉnh logic lọc url.
-- Nếu `main.py` không consumer được, thử đổi tên `group_id` trong  `consumer.py` sau đó khởi động lại. 
-- Qdrant hoạt động trên cổng 6333 (REST) và 6334 (gRPC). Hãy chắc chắn các port này không bị xung đột trên máy host.
-- Trong lần chạy make vectorize đầu tiên, hệ thống sẽ mất một chút thời gian để tải model BAAI/bge-m3 (khoảng vài GB) về máy.
-
-##  Mở rộng
-- Thêm cấu hình cho site khác (chỉ parse theo định dạng domain)
-- Lưu đầy đủ metadata vào MongoDB hoặc vector DB cho RAG
-- Thêm dockerfile/entrypoint để deploy app trong container
 
 ---
+
+## Chi tiết luồng dữ liệu
+
+1. Thu thập dữ liệu: Spider bắt đầu quét các trang báo từ danh sách trong config_site.json.
+2. Xử lý bài viết: Nếu phát hiện đường dẫn là bài viết mới, hệ thống sử dụng thư viện newspaper để trích xuất nội dung.
+3. Luồng Streaming: Dữ liệu được KafkaPipeline gửi vào topic news_raw để đảm bảo không bị thất thoát.
+4. Nạp dữ liệu thô: Consumer đọc từ Kafka, hash URL để tránh trùng lặp và lưu vào bảng article_metadata.
+5. Kho dữ liệu: Tiến trình ETL làm sạch dữ liệu, cắt nhỏ nội dung thành các chunks và nạp vào Warehouse.
+6. Vector hóa: Các chunks được nhúng bằng mô hình BAAI/bge-m3 thành vector 1024 chiều và đẩy lên Qdrant.
+7. Truy vấn AI: Hệ thống nhận câu hỏi, tìm kiếm ngữ nghĩa trên Qdrant và sử dụng LLM để tổng hợp câu trả lời.
+
+---
+
+## Hướng dẫn vận hành
+
+### Triển khai trên AWS Cloud
+```bash
+# 1. Cấu hình quyền truy cập AWS
+aws configure
+
+# 2. Triển khai tự động (Terraform + Docker)
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### Các lệnh kiểm tra hệ thống
+- Chạy giao diện chat CLI: `make test-interactive`
+- Kiểm tra phản hồi của AI: `make test-gen`
+- Kiểm tra tích hợp toàn bộ luồng: `make test-pipeline`
+- Dọn dẹp cache hệ thống: `make clean`
+
+---
+
+## Lưu ý quan trọng
+- Kết nối: Nếu không kết nối được Database hoặc Kafka, hãy kiểm tra lại Security Group trên AWS (mở cổng 5432 và 9092).
+- Cấu hình: File consumer.py cần được điều chỉnh thông tin host nếu chạy trong các môi trường mạng khác nhau.
+- Tài nguyên AI: Trong lần chạy đầu tiên, hệ thống sẽ tải mô hình bge-m3 (vài GB), hãy đảm bảo dung lượng ổ đĩa trống tối thiểu 10GB.
+
+---
+
+
+**Dự án được thực hiện phục vụ mục đích học tập tại Trường Đại học Bách Khoa TP.HCM.**
+**Giảng viên hướng dẫn: TS. Nguyễn Quang Hùng.**

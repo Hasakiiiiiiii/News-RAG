@@ -28,3 +28,4 @@ langchain_groq
 langchain-nvidia-ai-endpoints
 ragas 
 datasets
+python-dotenv
