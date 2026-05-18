@@ -116,6 +116,18 @@ NEWS-RAG/
 
 ---
 
+## Lịch trình tự động (Automation Schedule)
+
+Hệ thống được thiết lập để vận hành tự động toàn phần thông qua **AWS EventBridge (CloudWatch Events)**:
+- **Crawler Schedule**: Tự động kích hoạt lúc `01:00 AM UTC` (tương đương **08:00 AM giờ Việt Nam**) mỗi ngày.
+- **Pipeline Workflow**: 
+    1. **Thu thập**: Crawler lấy tin tức mới từ các trang báo.
+    2. **Xử lý ETL**: Chuyển đổi dữ liệu từ thô sang kho dữ liệu (Warehouse) ngay sau khi thu thập.
+    3. **Vectorize**: Tự động nhúng (embedding) và cập nhật vào Qdrant để sẵn sàng cho truy vấn AI.
+- **Cơ chế**: Sử dụng EventBridge điều phối các ECS Fargate Tasks chạy theo chu trình khép kín, đảm bảo dữ liệu luôn được cập nhật mỗi sáng.
+
+---
+
 ## Hướng dẫn vận hành
 
 ### Triển khai trên AWS Cloud
