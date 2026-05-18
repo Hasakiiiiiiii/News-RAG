@@ -27,6 +27,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -39,7 +40,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [actionType, setActionType] = useState<string>(''); // Lưu trạng thái đang load cái gì
-  
+
   const [models, setModels] = useState<any[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('default');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -51,26 +52,36 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const res = await fetch('http://localhost:8000/models');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.models && data.models.length > 0) {
-            setModels(data.models);
-            setSelectedModel(data.models[0].name);
+    if (isMounted) {
+      const fetchModels = async () => {
+        try {
+          const res = await fetch('http://localhost:8000/models');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.models && data.models.length > 0) {
+              setModels(data.models);
+              setSelectedModel(data.models[0].name);
+            }
           }
+        } catch (error) {
+          console.error("Lỗi lấy danh sách models:", error);
         }
-      } catch (error) {
-        console.error("Lỗi lấy danh sách models:", error);
-      }
-    };
-    fetchModels();
-  }, []);
+      };
+      fetchModels();
+    }
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return <div className="p-6 md:p-8 bg-[#f8fafc] min-h-screen flex flex-col h-[calc(100vh-4rem)]"></div>;
+  }
 
   const filterThinkingProcess = (content: string) => {
     return (content || "").replace(/<think>[\s\S]*?<\/think>/g, '').trim();
@@ -169,20 +180,20 @@ export default function ChatPage() {
 
     if (msg.type === 'rag') {
       return (
-        <div className="w-full">
+        <>
           {/* Parse Markdown thay vì text thuần */}
-          <div 
-            className="prose max-w-none text-sm text-slate-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: marked(msg.content || "") }} 
+          <div
+            className="prose prose-slate prose-sm max-w-none text-slate-700 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: marked(msg.content || "") }}
           />
           
           {msg.sources && msg.sources.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-slate-100 w-full">
               <h3 className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">🔗 Nguồn tham khảo</h3>
               <div className="flex flex-wrap gap-2">
                 {msg.sources.map((s, i) => (
-                  <a key={i} href={s.url} target="_blank" rel="noreferrer" 
-                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs rounded-md transition truncate max-w-[250px]" 
+                  <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs rounded-md transition truncate max-w-[200px]"
                      title={s.title}>
                     [{i+1}] {s.title}
                   </a>
@@ -190,7 +201,7 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-        </div>
+        </>
       );
     }
 
@@ -256,7 +267,7 @@ export default function ChatPage() {
         <div className="relative">
           <button 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            disabled={isLoading || models.length === 0}
+            disabled={isMounted ? (isLoading || models.length === 0) : true}
             className="flex items-center gap-3 bg-white hover:bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-all focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
           >
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-50/50 border border-indigo-100 text-indigo-600">
@@ -323,15 +334,15 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {/* Message Bubble (Mở rộng max-width nếu là compare hoặc retrieve) */}
+              {/* Message Bubble */}
               <div className={`${
-                msg.type === 'compare' || msg.type === 'retrieve' ? 'w-full md:max-w-[85%]' : 'max-w-[75%]'
-              } rounded-2xl px-5 py-4 shadow-sm ${
+                msg.type === 'compare' || msg.type === 'retrieve' ? 'w-full' : 'w-fit max-w-[85%]'
+              } rounded-2xl px-5 py-3.5 shadow-sm transition-all ${
                 msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'
               }`}>
                 {/* Render nội dung linh hoạt */}
                 {msg.role === 'user' ? (
-                  <div className="text-sm font-medium whitespace-pre-wrap">{msg.content}</div>
+                  <div className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                 ) : (
                   renderAIMessageContent(msg)
                 )}

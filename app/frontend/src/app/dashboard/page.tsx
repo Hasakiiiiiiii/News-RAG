@@ -9,10 +9,11 @@ import StatCard from '../../components/StatCard';
 
 
 export default function DashboardPage() {
+  const [isMounted, setIsMounted] = useState(false);
   // --- STATE LƯU DỮ LIỆU THẬT ---
-  const [stats, setStats] = useState({ 
-    total_articles: 0, 
-    total_sources: 0, 
+  const [stats, setStats] = useState({
+    total_articles: 0,
+    total_sources: 0,
     total_vectors: 0,
     top_authors: [] as any[],
     source_distribution: [] as any[], // Thêm mảng này
@@ -22,7 +23,7 @@ export default function DashboardPage() {
 
   // Mảng màu sắc tự động (Hỗ trợ tối đa 6 đầu báo, nếu có nhiều báo hơn nó sẽ quay vòng lại)
   const COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4'];
-  
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // --- HÀM GỌI API THẬT ---
@@ -53,8 +54,13 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     fetchStats();
   }, []);
+
+  if (!isMounted) {
+    return <div className="p-6 md:p-8 space-y-6 bg-[#f8fafc] min-h-screen"></div>;
+  }
 
   return (
     <div className="p-6 md:p-8 space-y-6 bg-[#f8fafc] min-h-screen">
