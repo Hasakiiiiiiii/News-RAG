@@ -114,7 +114,7 @@ def run_vectorization(limit=None):
 
         print(f"[*] Bắt đầu Vector hóa và đẩy {total_new_chunks} chunks MỚI lên Qdrant...")
 
-        ENCODE_BATCH_SIZE = 64 
+        ENCODE_BATCH_SIZE = 32
         points = []
 
         for i in range(0, total_new_chunks, ENCODE_BATCH_SIZE):

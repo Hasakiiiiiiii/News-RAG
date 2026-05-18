@@ -18,7 +18,7 @@ def run_spider(site_url):
     settings = get_project_settings()
     
     # Ép Spider tự động ngắt sau 10 phút (600 giây) để đảm bảo đúng ca
-    settings.set('CLOSESPIDER_TIMEOUT', 300)
+    settings.set('CLOSESPIDER_TIMEOUT', 600)
     
     process = CrawlerProcess(settings)
     process.crawl(NewsRAGSpider, start_urls=[site_url])
