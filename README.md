@@ -99,6 +99,8 @@ News RAG là một hệ thống phân tích dữ liệu toàn diện được th
 ├── main.py                 # File thực thi chính của hệ thống
 ├── Dockerfile              # Cấu hình Docker image cho toàn bộ pipeline
 ├── docker-compose.yml      # Điều phối các dịch vụ (DB, Kafka, Qdrant)
+├── CO3137_BigData_4TraiTao_Report.pdf      # Báo cáo BTL
+├── CO3137_BigData_4TraiTao_Slide.pdf      # Slide BTL
 └── requirements.txt        # Danh sách thư viện Python cần thiết
 ```
 

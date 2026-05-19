@@ -46,6 +46,7 @@ data/
 logs/
 *.log
 model_cache/
+*.pdf
 
 # dependencies
 /node_modules
