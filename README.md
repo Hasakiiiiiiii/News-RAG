@@ -68,37 +68,37 @@ News RAG là một hệ thống phân tích dữ liệu toàn diện được th
 
 ## Cấu trúc thư mục chi tiết
 
-Dự án được thiết kế theo tiêu chuẩn module hóa Data Engineering:
-
 ```text
-NEWS-RAG/
-├── app/                    # Ứng dụng giao diện (Next.js / Dashboard)
-│   └── src/                # Mã nguồn frontend và các components
-├── config/                 # Cấu hình tập trung hệ thống
-│   └── config_site.json    # Danh sách các trang báo cần thu thập
-├── consumer/               # Pipeline xử lý dữ liệu từ Kafka sang Database thô
-│   └── consumer.py
-├── crawler/                # Lõi Scrapy (Spiders, Pipelines, Settings)
-│   ├── spiders/
-│   │   └── spider.py       # Lõi thu thập link và trích xuất nội dung
-│   ├── pipelines.py        # Xử lý dữ liệu sau khi thu thập
-│   └── settings.py         # Cấu hình Scrapy (User-Agent, Delay...)
-├── database/               # Scripts khởi tạo cấu trúc dữ liệu
-│   └── warehouse.sql       # Định nghĩa Star Schema cho Data Warehouse
-├── etl/                    # Tiến trình Biến đổi và Nạp dữ liệu (Transform & Load)
-│   └── etl_warehouse.py    # Script ETL chính
-├── vectorize/              # Xử lý nhúng AI và Vector Database
-│   ├── vectorize.py        # Chuyển đổi văn bản sang Vector và đẩy lên Qdrant
-│   └── reset_qdrant.py     # Xóa và khởi tạo lại bộ nhớ Vector
-├── search/                 # Hệ thống truy vấn RAG và tích hợp LLM
-│   ├── engine.py           # Điều phối luồng (Retriever -> Generator)
-│   ├── generator.py        # Quản lý các mô hình ngôn ngữ lớn (OpenAI, Gemini...)
-│   ├── retriever.py        # Logic kết nối và tìm kiếm trên Qdrant
-│   ├── prompts.py          # Quản lý các mẫu gợi ý cho AI
-│   └── schemas.py          # Định nghĩa cấu trúc dữ liệu Pydantic
-├── main.tf                 # Cấu hình hạ tầng Cloud (Terraform)
-├── deploy.sh               # Script triển khai tự động lên AWS Sydney
-├── Dockerfile              # Đóng gói mã nguồn hệ thống
+.
+├── app/                    # Ứng dụng Web & API Dashboard
+│   ├── frontend/           # Giao diện Next.js (Dashboard, Chat, Monitor)
+│   ├── api.py              # FastAPI backend cho ứng dụng
+│   └── main.py             # Entry point khởi chạy ứng dụng
+├── crawler/                # Lõi thu thập dữ liệu (Scrapy)
+│   ├── spiders/spider.py   # Logic trích xuất nội dung tin tức
+│   ├── pipelines.py        # Đẩy dữ liệu vào Kafka
+│   └── settings.py         # Cấu hình hiệu năng và User-Agent
+├── consumer/               # Pipeline xử lý dữ liệu
+│   └── consumer.py         # Đọc từ Kafka và lưu vào Postgres (Metadata)
+├── etl/                    # Transform & Load
+│   └── etl_warehouse.py    # Làm sạch dữ liệu và nạp vào Warehouse
+├── search/                 # Hệ thống RAG Engine
+│   ├── engine.py           # Điều phối luồng Retriever -> Generator
+│   ├── retriever.py        # Tìm kiếm ngữ nghĩa trên Qdrant
+│   ├── generator.py        # Tích hợp các LLM (Groq, Gemini, OpenAI)
+│   └── prompts.py          # Quản lý các Template cho AI
+├── vectorize/              # Embedding & Vector DB
+│   ├── vectorize.py        # Chuyển đổi văn bản sang Vector (BGE-M3)
+│   └── reset_qdrant.py     # Khởi tạo lại bộ nhớ Vector
+├── evaluation/             # Đánh giá chất lượng
+│   └── ragas_evaluation.py # Chạy đánh giá bằng framework Ragas
+├── database/               # SQL Scripts
+│   └── warehouse.sql       # Định nghĩa Schema Star cho Warehouse
+├── init_db/                # Khởi tạo hệ thống
+│   └── init_postgre.py     # Script khởi tạo Database ban đầu
+├── main.py                 # File thực thi chính của hệ thống
+├── Dockerfile              # Cấu hình Docker image cho toàn bộ pipeline
+├── docker-compose.yml      # Điều phối các dịch vụ (DB, Kafka, Qdrant)
 └── requirements.txt        # Danh sách thư viện Python cần thiết
 ```
 
