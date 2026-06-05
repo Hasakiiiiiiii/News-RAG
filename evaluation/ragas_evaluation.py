@@ -9,7 +9,7 @@ load_dotenv()
 
 from datasets import Dataset
 from ragas import evaluate
-from ragas.run_config import RunConfig # Bổ sung RunConfig để chống lỗi sót số
+from ragas.run_config import RunConfig 
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -20,7 +20,7 @@ base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(base_dir)
 
 from search.engine import Pipeline
-from search.generator import generator_registry
+# from search.generator import generator_registry # (Có thể bỏ qua nếu không cần lấy danh sách động nữa)
 
 def run_ragas_evaluation():
     if not os.getenv("JUDGE_API_KEY"):
@@ -31,7 +31,6 @@ def run_ragas_evaluation():
     print("[*] Đang mời Giám khảo GPT-4o-mini vào vị trí...")
     judge_key = os.getenv("JUDGE_API_KEY")
     
-    # Tăng max_retries và timeout để tránh đứt kết nối giữa chừng
     judge_llm = ChatOpenAI(
         model="gpt-4o-mini", 
         temperature=0.0, 
@@ -53,11 +52,10 @@ def run_ragas_evaluation():
 
     metrics = [faithfulness, answer_relevancy, context_precision, context_recall]
 
-    # --- TỐI ƯU HÓA: CẤU HÌNH CHỐNG LỖI SÓT SỐ (NaN) ---
     ragas_config = RunConfig(
-        max_retries=15,       # Bắt giám khảo thử lại 15 lần nếu trả về JSON lỗi
-        max_wait=90,          # Thời gian chờ tối đa giữa các lần gọi
-        max_workers=4         # Giới hạn số luồng đồng thời để không bị OpenAI chặn (Rate Limit)
+        max_retries=15,       
+        max_wait=90,          
+        max_workers=4         
     )
 
     # --- 2. ĐỌC BỘ ĐỀ THI TỪ CSV ---
@@ -71,23 +69,18 @@ def run_ragas_evaluation():
     df_testset = pd.read_csv(testset_path)
     test_cases = df_testset[['question', 'ground_truth']].to_dict('records')
 
-    # --- 3. LẤY DANH SÁCH GENERATORS ĐỂ TEST ---
-    available_models = generator_registry.list_generators()
-    if not available_models:
-        print("[!] Không có model nào được nạp từ Registry. Hãy kiểm tra lại file .env")
-        return
-
-    model_names = [m["name"] for m in available_models]
-    print(f"[*] Đã tìm thấy {len(model_names)} models cần đánh giá: {model_names}")
+    # --- 3. CỐ ĐỊNH MODEL VÀ CHẾ ĐỘ RAG THEO YÊU CẦU ---
+    model_names = ["gpt-oss-120b"]
+    print(f"[*] Chỉ chạy đánh giá trên mô hình: {model_names}")
     
     pipeline = Pipeline()
 
+    # Chỉ giữ lại chế độ NewsRAG (Advanced RAG)
     test_modes = [
-        {"name": "VANILLA_RAG", "is_vanilla": True},
-        {"name": "ADVANCED_RAG", "is_vanilla": False}
+        {"name": "NEWS_RAG", "is_vanilla": False}
     ]
 
-    # --- 4. CHẠY VÒNG LẶP KÉP: TỪNG MODEL -> TỪNG CHẾ ĐỘ RAG ---
+    # --- 4. CHẠY ĐÁNH GIÁ ---
     for model_name in model_names:
         print("\n" + "#"*80)
         print(f"BẮT ĐẦU ĐÁNH GIÁ MÔ HÌNH: {model_name.upper()}")
@@ -116,11 +109,9 @@ def run_ragas_evaluation():
                 # Gọi Pipeline với cấu hình tương ứng
                 response = pipeline.ask(query=question, model=model_name, is_vanilla=is_vanilla_flag)
                 
-                # --- TỐI ƯU HÓA: XỬ LÝ CONTEXT RỖNG (TRÁNH LỖI CHIA CHO 0 CỦA RAGAS) ---
                 if response.results:
                     contexts = [hit.content for hit in response.results]
                 else:
-                    # Nếu không tìm thấy gì, chèn 1 câu giả định để Ragas vẫn chấm 0 điểm thay vì lỗi NaN
                     contexts = ["Không tìm thấy bất kỳ tài liệu hoặc ngữ cảnh nào liên quan."]
                 
                 raw_answer = response.summary if response.summary else "Không có thông tin."
@@ -134,7 +125,6 @@ def run_ragas_evaluation():
             dataset = Dataset.from_dict(data_for_ragas)
 
             print(f"\n[*] Giám khảo đang chấm điểm cho {model_name} - {mode_name} (Vui lòng đợi)...")
-            # Bổ sung run_config vào hàm evaluate
             evaluation_result = evaluate(
                 dataset=dataset, 
                 metrics=metrics, 
@@ -147,10 +137,9 @@ def run_ragas_evaluation():
             print("-" * 50)
             print(evaluation_result)
             
-            # --- 5. LƯU BẢNG ĐIỂM VỚI TÊN ĐỘNG ---
+            # --- 5. LƯU BẢNG ĐIỂM ---
             df_result = evaluation_result.to_pandas()
             
-            # Lưu file bao gồm cả tên model và chế độ RAG
             output_path = f"evaluation/result/eval_{model_name.lower()}_{mode_name.lower()}.csv"
             
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
