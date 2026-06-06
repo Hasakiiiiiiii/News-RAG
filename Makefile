@@ -9,7 +9,7 @@ UVICORN = venv/bin/uvicorn
 
 # --- LỆNH CHÍNH ---
 
-.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval test-vani auto full run-crawl run-etl run-vectorize
+.PHONY: all setup up down restart crawl consume status clean main etl vectorize reset_qdrant db-count kafka-peek test-interactive test-gen test-pipeline eval test-vani auto full run-crawl run-etl run-vectorize run-flash
 
 # Khởi tạo môi trường lần đầu
 setup:
@@ -105,6 +105,7 @@ test-vani:
 test-interactive:
 	@echo "[*] Đang kiểm tra..."
 	PYTHONPATH=. $(PYTHON) -m tests.search.test_interactive
+
 
 eval:
 	$(PYTHON) evaluation/ragas_evaluation.py

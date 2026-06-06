@@ -1,0 +1,403 @@
+Collecting vllm
+  Downloading vllm-0.22.0-cp38-abi3-manylinux_2_28_x86_64.whl (261.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 261.0/261.0 MB 5.3 MB/s eta 0:00:00
+Collecting sentence-transformers
+  Downloading sentence_transformers-5.5.1-py3-none-any.whl (588 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 588.9/588.9 KB 20.7 MB/s eta 0:00:00
+Requirement already satisfied: filelock>=3.16.1 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (3.29.1)
+Collecting nvidia-cutlass-dsl[cu13]==4.5.2
+  Downloading nvidia_cutlass_dsl-4.5.2-py3-none-any.whl (10 kB)
+Requirement already satisfied: protobuf!=6.30.*,!=6.31.*,!=6.32.*,!=6.33.0.*,!=6.33.1.*,!=6.33.2.*,!=6.33.3.*,!=6.33.4.*,>=5.29.6 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (7.35.0)
+Collecting compressed-tensors==0.15.0.1
+  Downloading compressed_tensors-0.15.0.1-py3-none-any.whl (194 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 194.3/194.3 KB 15.0 MB/s eta 0:00:00
+Requirement already satisfied: pillow in ./flashrag_env/lib/python3.10/site-packages (from vllm) (12.2.0)
+Collecting sentencepiece
+  Using cached sentencepiece-0.2.1-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (1.4 MB)
+Collecting nvidia-cudnn-frontend<1.19.0,>=1.13.0
+  Downloading nvidia_cudnn_frontend-1.18.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (2.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 21.7 MB/s eta 0:00:00
+Collecting model-hosting-container-standards<1.0.0,>=0.1.14
+  Downloading model_hosting_container_standards-0.1.15-py3-none-any.whl (125 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 125.4/125.4 KB 13.4 MB/s eta 0:00:00
+Collecting opentelemetry-sdk>=1.27.0
+  Downloading opentelemetry_sdk-1.42.1-py3-none-any.whl (170 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 170.9/170.9 KB 15.0 MB/s eta 0:00:00
+Collecting lark==1.2.2
+  Downloading lark-1.2.2-py3-none-any.whl (111 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 111.0/111.0 KB 12.1 MB/s eta 0:00:00
+Collecting py-cpuinfo
+  Using cached py_cpuinfo-9.0.0-py3-none-any.whl (22 kB)
+Collecting ninja
+  Using cached ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (180 kB)
+Collecting flashinfer-python==0.6.11.post2
+  Downloading flashinfer_python-0.6.11.post2-py3-none-any.whl (13.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.7/13.7 MB 20.9 MB/s eta 0:00:00
+Requirement already satisfied: openai>=2.0.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (2.41.0)
+Collecting mistral_common[image]>=1.11.2
+  Downloading mistral_common-1.11.3-py3-none-any.whl (6.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.5/6.5 MB 22.8 MB/s eta 0:00:00
+Collecting outlines_core==0.2.14
+  Downloading outlines_core-0.2.14-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 22.5 MB/s eta 0:00:00
+Requirement already satisfied: cachetools in ./flashrag_env/lib/python3.10/site-packages (from vllm) (7.1.4)
+Requirement already satisfied: typing_extensions>=4.10 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (4.15.0)
+Collecting prometheus_client>=0.18.0
+  Using cached prometheus_client-0.25.0-py3-none-any.whl (64 kB)
+Requirement already satisfied: safetensors>=0.6.2 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (0.8.0rc1)
+Collecting numba==0.65.0
+  Downloading numba-0.65.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.7/3.7 MB 24.1 MB/s eta 0:00:00
+Collecting diskcache==5.6.3
+  Using cached diskcache-5.6.3-py3-none-any.whl (45 kB)
+Collecting einops
+  Using cached einops-0.8.2-py3-none-any.whl (65 kB)
+Collecting torchvision==0.26.0
+  Using cached torchvision-0.26.0-cp310-cp310-manylinux_2_28_x86_64.whl (7.5 MB)
+Collecting opentelemetry-api>=1.27.0
+  Downloading opentelemetry_api-1.42.1-py3-none-any.whl (61 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.3/61.3 KB 6.9 MB/s eta 0:00:00
+Collecting prometheus-fastapi-instrumentator>=7.0.0
+  Downloading prometheus_fastapi_instrumentator-8.0.0-py3-none-any.whl (19 kB)
+Collecting llguidance<1.8.0,>=1.7.0
+  Downloading llguidance-1.7.6-cp39-abi3-manylinux_2_31_x86_64.whl (3.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 22.8 MB/s eta 0:00:00
+Collecting pyzmq>=25.0.0
+  Using cached pyzmq-27.1.0-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (854 kB)
+Requirement already satisfied: tiktoken>=0.6.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (0.13.0)
+Collecting torch==2.11.0
+  Using cached torch-2.11.0-cp310-cp310-manylinux_2_28_x86_64.whl (530.6 MB)
+Requirement already satisfied: tokenizers>=0.21.1 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (0.23.0rc0)
+Collecting mcp
+  Downloading mcp-1.27.2-py3-none-any.whl (220 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 220.5/220.5 KB 15.6 MB/s eta 0:00:00
+Collecting opentelemetry-semantic-conventions-ai>=0.4.1
+  Downloading opentelemetry_semantic_conventions_ai-0.5.1-py3-none-any.whl (11 kB)
+Collecting cbor2
+  Downloading cbor2-6.1.2-cp310-cp310-manylinux_2_28_x86_64.whl (468 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 468.7/468.7 KB 19.4 MB/s eta 0:00:00
+Collecting blake3
+  Downloading blake3-1.0.8-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (387 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 387.6/387.6 KB 20.4 MB/s eta 0:00:00
+Collecting tilelang==0.1.9
+  Downloading tilelang-0.1.9-cp38-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (45.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.4/45.4 MB 17.3 MB/s eta 0:00:00
+Collecting fastsafetensors>=0.2.2
+  Downloading fastsafetensors-0.3.2-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (1.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 22.1 MB/s eta 0:00:00
+Collecting gguf>=0.17.0
+  Downloading gguf-0.19.0-py3-none-any.whl (118 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 118.5/118.5 KB 10.4 MB/s eta 0:00:00
+Collecting torchaudio==2.11.0
+  Using cached torchaudio-2.11.0-cp310-cp310-manylinux_2_28_x86_64.whl (1.8 MB)
+Collecting opencv-python-headless>=4.13.0
+  Downloading opencv_python_headless-4.13.0.92-cp37-abi3-manylinux_2_28_x86_64.whl (60.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.4/60.4 MB 15.5 MB/s eta 0:00:00
+Collecting depyf==0.20.0
+  Downloading depyf-0.20.0-py3-none-any.whl (39 kB)
+Collecting setproctitle
+  Downloading setproctitle-1.3.7-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (31 kB)
+Collecting pybase64
+  Downloading pybase64-1.4.3-cp310-cp310-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (68 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 68.9/68.9 KB 6.1 MB/s eta 0:00:00
+Requirement already satisfied: transformers!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.*,!=5.4.*,!=5.5.0,>=4.56.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (5.10.2)
+Requirement already satisfied: requests>=2.26.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (2.34.2)
+Collecting partial-json-parser
+  Downloading partial_json_parser-0.2.1.1.post7-py3-none-any.whl (10 kB)
+Requirement already satisfied: fastapi[standard]>=0.115.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (0.136.3)
+Requirement already satisfied: tqdm in ./flashrag_env/lib/python3.10/site-packages (from vllm) (4.67.3)
+Collecting openai-harmony>=0.0.3
+  Downloading openai_harmony-0.0.8-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.0/3.0 MB 32.8 MB/s eta 0:00:00
+Requirement already satisfied: numpy in ./flashrag_env/lib/python3.10/site-packages (from vllm) (2.2.6)
+Collecting quack-kernels>=0.3.3
+  Downloading quack_kernels-0.5.0-py3-none-any.whl (327 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 327.7/327.7 KB 23.4 MB/s eta 0:00:00
+Collecting humming-kernels[cu13]==0.1.2
+  Downloading humming_kernels-0.1.2-py3-none-any.whl (160 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 161.0/161.0 KB 16.1 MB/s eta 0:00:00
+Collecting tokenspeed-mla==0.1.2
+  Downloading tokenspeed_mla-0.1.2-py3-none-manylinux_2_28_x86_64.whl (748 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 748.7/748.7 KB 31.1 MB/s eta 0:00:00
+Collecting watchfiles
+  Downloading watchfiles-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (457 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 457.1/457.1 KB 26.3 MB/s eta 0:00:00
+Collecting lm-format-enforcer==0.11.3
+  Downloading lm_format_enforcer-0.11.3-py3-none-any.whl (45 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.4/45.4 KB 3.4 MB/s eta 0:00:00
+Collecting cloudpickle
+  Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+Collecting opentelemetry-exporter-otlp>=1.27.0
+  Downloading opentelemetry_exporter_otlp-1.42.1-py3-none-any.whl (6.7 kB)
+Collecting python-json-logger
+  Using cached python_json_logger-4.1.0-py3-none-any.whl (15 kB)
+Collecting xgrammar<1.0.0,>=0.2.0
+  Downloading xgrammar-0.2.1-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (44.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.7/44.7 MB 16.1 MB/s eta 0:00:00
+Requirement already satisfied: pyyaml in ./flashrag_env/lib/python3.10/site-packages (from vllm) (6.0.3)
+Collecting anthropic>=0.71.0
+  Downloading anthropic-0.105.2-py3-none-any.whl (837 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 837.5/837.5 KB 25.4 MB/s eta 0:00:00
+Collecting flashinfer-cubin==0.6.11.post2
+  Downloading flashinfer_cubin-0.6.11.post2-py3-none-any.whl (360.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 360.9/360.9 MB 2.0 MB/s eta 0:00:00
+Collecting ijson
+  Using cached ijson-3.5.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (130 kB)
+Requirement already satisfied: aiohttp>=3.13.3 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (3.14.0)
+Collecting apache-tvm-ffi==0.1.9
+  Downloading apache_tvm_ffi-0.1.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (2.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 25.1 MB/s eta 0:00:00
+Requirement already satisfied: psutil in ./flashrag_env/lib/python3.10/site-packages (from vllm) (7.2.2)
+Requirement already satisfied: pydantic>=2.12.0 in ./flashrag_env/lib/python3.10/site-packages (from vllm) (2.14.0a1)
+Requirement already satisfied: regex in ./flashrag_env/lib/python3.10/site-packages (from vllm) (2026.5.9)
+Collecting msgspec
+  Downloading msgspec-0.21.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (222 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 222.7/222.7 KB 14.5 MB/s eta 0:00:00
+Collecting loguru
+  Using cached loguru-0.7.3-py3-none-any.whl (61 kB)
+Requirement already satisfied: dill in ./flashrag_env/lib/python3.10/site-packages (from depyf==0.20.0->vllm) (0.4.1)
+Collecting astor
+  Downloading astor-0.8.1-py2.py3-none-any.whl (27 kB)
+Requirement already satisfied: click in ./flashrag_env/lib/python3.10/site-packages (from flashinfer-python==0.6.11.post2->vllm) (8.4.1)
+Collecting nvidia-ml-py
+  Downloading nvidia_ml_py-13.610.43-py3-none-any.whl (53 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53.2/53.2 KB 6.2 MB/s eta 0:00:00
+Requirement already satisfied: packaging>=24.2 in ./flashrag_env/lib/python3.10/site-packages (from flashinfer-python==0.6.11.post2->vllm) (26.2)
+Collecting cuda-tile
+  Downloading cuda_tile-1.4.0-cp310-cp310-manylinux2014_x86_64.whl (282 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 282.6/282.6 KB 15.1 MB/s eta 0:00:00
+Collecting tabulate
+  Downloading tabulate-0.10.0-py3-none-any.whl (39 kB)
+Requirement already satisfied: jinja2 in ./flashrag_env/lib/python3.10/site-packages (from humming-kernels[cu13]==0.1.2->vllm) (3.1.6)
+Requirement already satisfied: cuda-bindings in ./flashrag_env/lib/python3.10/site-packages (from humming-kernels[cu13]==0.1.2->vllm) (13.3.1)
+Collecting pyelftools
+  Downloading pyelftools-0.33-py3-none-any.whl (201 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 201.2/201.2 KB 15.5 MB/s eta 0:00:00
+Requirement already satisfied: triton in ./flashrag_env/lib/python3.10/site-packages (from humming-kernels[cu13]==0.1.2->vllm) (3.7.0)
+Collecting nvidia-cuda-nvcc
+  Downloading nvidia_cuda_nvcc-13.3.33-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (44.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.9/44.9 MB 19.7 MB/s eta 0:00:00
+Requirement already satisfied: nvidia-cuda-runtime in ./flashrag_env/lib/python3.10/site-packages (from humming-kernels[cu13]==0.1.2->vllm) (13.0.96)
+Collecting nvidia-cuda-cccl
+  Downloading nvidia_cuda_cccl-13.3.3.3.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.5/3.5 MB 30.9 MB/s eta 0:00:00
+Requirement already satisfied: nvidia-cuda-nvrtc in ./flashrag_env/lib/python3.10/site-packages (from humming-kernels[cu13]==0.1.2->vllm) (13.0.88)
+Collecting interegular>=0.3.2
+  Downloading interegular-0.3.3-py37-none-any.whl (23 kB)
+Requirement already satisfied: llvmlite<0.48,>=0.47.0dev0 in ./flashrag_env/lib/python3.10/site-packages (from numba==0.65.0->vllm) (0.47.0)
+Collecting nvidia-cutlass-dsl-libs-base==4.5.2
+  Downloading nvidia_cutlass_dsl_libs_base-4.5.2-cp310-cp310-manylinux_2_28_x86_64.whl (74.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 74.5/74.5 MB 14.9 MB/s eta 0:00:00
+Collecting nvidia-cutlass-dsl-libs-cu13==4.5.2
+  Downloading nvidia_cutlass_dsl_libs_cu13-4.5.2-cp310-cp310-manylinux_2_28_x86_64.whl (78.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.8/78.8 MB 13.2 MB/s eta 0:00:00
+Collecting z3-solver<4.15.5,>=4.13.0
+  Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 27.5 MB/s eta 0:00:00
+Collecting torch-c-dlpack-ext
+  Downloading torch_c_dlpack_ext-0.1.5-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (879 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 879.5/879.5 KB 34.7 MB/s eta 0:00:00
+Collecting ml-dtypes
+  Using cached ml_dtypes-0.5.4-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (5.0 MB)
+Collecting tokenspeed-triton>=3.7.10.post20260505
+  Downloading tokenspeed_triton-3.7.10.post20260531-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (85.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 85.9/85.9 MB 11.2 MB/s eta 0:00:00
+Requirement already satisfied: cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (13.0.2)
+Collecting nvidia-nccl-cu13==2.28.9
+  Using cached nvidia_nccl_cu13-2.28.9-py3-none-manylinux_2_18_x86_64.whl (196.5 MB)
+Requirement already satisfied: sympy>=1.13.3 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (1.14.0)
+Collecting nvidia-cudnn-cu13==9.19.0.56
+  Using cached nvidia_cudnn_cu13-9.19.0.56-py3-none-manylinux_2_27_x86_64.whl (366.1 MB)
+Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (3.4.5)
+Collecting triton
+  Using cached triton-3.6.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (188.1 MB)
+Requirement already satisfied: fsspec>=0.8.5 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (2026.2.0)
+Requirement already satisfied: setuptools<82 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (59.6.0)
+Collecting nvidia-cusparselt-cu13==0.8.0
+  Using cached nvidia_cusparselt_cu13-0.8.0-py3-none-manylinux2014_x86_64.whl (169.9 MB)
+Requirement already satisfied: networkx>=2.5.1 in ./flashrag_env/lib/python3.10/site-packages (from torch==2.11.0->vllm) (3.4.2)
+Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (12.0.0.61)
+Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (1.15.1.6)
+Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (10.4.0.35)
+Requirement already satisfied: nvidia-nvjitlink==13.0.88.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (13.0.88)
+Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (12.0.4.66)
+Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (13.0.85)
+Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (12.6.3.3)
+Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./flashrag_env/lib/python3.10/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2->torch==2.11.0->vllm) (13.0.85)
+Collecting nvidia-cublas==13.1.0.3.*
+  Using cached nvidia_cublas-13.1.0.3-py3-none-manylinux_2_27_x86_64.whl (423.1 MB)
+Collecting cuda-python>=12.8
+  Downloading cuda_python-13.3.1-py3-none-any.whl (8.3 kB)
+Requirement already satisfied: scipy>=1.0.0 in ./flashrag_env/lib/python3.10/site-packages (from sentence-transformers) (1.15.3)
+Requirement already satisfied: huggingface-hub>=0.23.0 in ./flashrag_env/lib/python3.10/site-packages (from sentence-transformers) (1.17.0)
+Collecting scikit-learn>=0.22.0
+  Using cached scikit_learn-1.7.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (9.7 MB)
+Requirement already satisfied: aiohappyeyeballs>=2.5.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (2.6.2)
+Requirement already satisfied: attrs>=17.3.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (26.1.0)
+Requirement already satisfied: async-timeout<6.0,>=4.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (5.0.1)
+Requirement already satisfied: aiosignal>=1.4.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (1.4.0)
+Requirement already satisfied: propcache>=0.2.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (0.5.2)
+Requirement already satisfied: yarl<2.0,>=1.17.0 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (1.24.2)
+Requirement already satisfied: frozenlist>=1.1.1 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (1.8.0)
+Requirement already satisfied: multidict<7.0,>=4.5 in ./flashrag_env/lib/python3.10/site-packages (from aiohttp>=3.13.3->vllm) (6.7.1)
+Requirement already satisfied: distro<2,>=1.7.0 in ./flashrag_env/lib/python3.10/site-packages (from anthropic>=0.71.0->vllm) (1.9.0)
+Requirement already satisfied: httpx<1,>=0.25.0 in ./flashrag_env/lib/python3.10/site-packages (from anthropic>=0.71.0->vllm) (0.28.1)
+Collecting docstring-parser<1,>=0.15
+  Using cached docstring_parser-0.18.0-py3-none-any.whl (22 kB)
+Requirement already satisfied: sniffio in ./flashrag_env/lib/python3.10/site-packages (from anthropic>=0.71.0->vllm) (1.3.1)
+Requirement already satisfied: anyio<5,>=3.5.0 in ./flashrag_env/lib/python3.10/site-packages (from anthropic>=0.71.0->vllm) (4.13.0)
+Requirement already satisfied: jiter<1,>=0.4.0 in ./flashrag_env/lib/python3.10/site-packages (from anthropic>=0.71.0->vllm) (0.15.0)
+Requirement already satisfied: starlette>=0.46.0 in ./flashrag_env/lib/python3.10/site-packages (from fastapi[standard]>=0.115.0->vllm) (1.2.1)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./flashrag_env/lib/python3.10/site-packages (from fastapi[standard]>=0.115.0->vllm) (0.4.2)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./flashrag_env/lib/python3.10/site-packages (from fastapi[standard]>=0.115.0->vllm) (0.0.4)
+Collecting fastapi-cli[standard]>=0.0.8
+  Downloading fastapi_cli-0.0.24-py3-none-any.whl (12 kB)
+Requirement already satisfied: python-multipart>=0.0.18 in ./flashrag_env/lib/python3.10/site-packages (from fastapi[standard]>=0.115.0->vllm) (0.0.32)
+Collecting fastar>=0.9.0
+  Downloading fastar-0.11.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (823 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 823.0/823.0 KB 13.7 MB/s eta 0:00:00
+Collecting pydantic-extra-types>=2.0.0
+  Downloading pydantic_extra_types-2.11.1-py3-none-any.whl (79 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.5/79.5 KB 8.9 MB/s eta 0:00:00
+Collecting email-validator>=2.0.0
+  Downloading email_validator-2.3.0-py3-none-any.whl (35 kB)
+Collecting pydantic-settings>=2.0.0
+  Downloading pydantic_settings-2.14.1-py3-none-any.whl (60 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.0/61.0 KB 6.4 MB/s eta 0:00:00
+Requirement already satisfied: uvicorn[standard]>=0.12.0 in ./flashrag_env/lib/python3.10/site-packages (from fastapi[standard]>=0.115.0->vllm) (0.49.0)
+Requirement already satisfied: typer>=0.9.0 in ./flashrag_env/lib/python3.10/site-packages (from fastsafetensors>=0.2.2->vllm) (0.25.1)
+Requirement already satisfied: hf-xet<2.0.0,>=1.4.3 in ./flashrag_env/lib/python3.10/site-packages (from huggingface-hub>=0.23.0->sentence-transformers) (1.5.1.dev1)
+Requirement already satisfied: jsonschema>=4.21.1 in ./flashrag_env/lib/python3.10/site-packages (from mistral_common[image]>=1.11.2->vllm) (4.26.0)
+Collecting jmespath
+  Using cached jmespath-1.1.0-py3-none-any.whl (20 kB)
+Collecting supervisor>=4.2.0
+  Downloading supervisor-4.3.0-py2.py3-none-any.whl (320 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 320.7/320.7 KB 16.9 MB/s eta 0:00:00
+Collecting opentelemetry-exporter-otlp-proto-http==1.42.1
+  Downloading opentelemetry_exporter_otlp_proto_http-1.42.1-py3-none-any.whl (21 kB)
+Collecting opentelemetry-exporter-otlp-proto-grpc==1.42.1
+  Downloading opentelemetry_exporter_otlp_proto_grpc-1.42.1-py3-none-any.whl (19 kB)
+Collecting googleapis-common-protos~=1.57
+  Downloading googleapis_common_protos-1.75.0-py3-none-any.whl (300 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 300.6/300.6 KB 14.2 MB/s eta 0:00:00
+Collecting opentelemetry-proto==1.42.1
+  Downloading opentelemetry_proto-1.42.1-py3-none-any.whl (71 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.8/71.8 KB 8.3 MB/s eta 0:00:00
+Collecting grpcio<2.0.0,>=1.63.2
+  Downloading grpcio-1.81.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (6.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.8/6.8 MB 17.2 MB/s eta 0:00:00
+Collecting opentelemetry-exporter-otlp-proto-common==1.42.1
+  Downloading opentelemetry_exporter_otlp_proto_common-1.42.1-py3-none-any.whl (17 kB)
+Collecting protobuf!=6.30.*,!=6.31.*,!=6.32.*,!=6.33.0.*,!=6.33.1.*,!=6.33.2.*,!=6.33.3.*,!=6.33.4.*,>=5.29.6
+  Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 323.4/323.4 KB 15.0 MB/s eta 0:00:00
+Collecting opentelemetry-semantic-conventions==0.63b1
+  Downloading opentelemetry_semantic_conventions-0.63b1-py3-none-any.whl (203 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 203.7/203.7 KB 13.9 MB/s eta 0:00:00
+Requirement already satisfied: pydantic-core==2.47.0 in ./flashrag_env/lib/python3.10/site-packages (from pydantic>=2.12.0->vllm) (2.47.0)
+Requirement already satisfied: annotated-types>=0.6.0 in ./flashrag_env/lib/python3.10/site-packages (from pydantic>=2.12.0->vllm) (0.7.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./flashrag_env/lib/python3.10/site-packages (from requests>=2.26.0->vllm) (3.4.7)
+Requirement already satisfied: certifi>=2023.5.7 in ./flashrag_env/lib/python3.10/site-packages (from requests>=2.26.0->vllm) (2026.5.20)
+Requirement already satisfied: urllib3<3,>=1.26 in ./flashrag_env/lib/python3.10/site-packages (from requests>=2.26.0->vllm) (2.7.0)
+Requirement already satisfied: idna<4,>=2.5 in ./flashrag_env/lib/python3.10/site-packages (from requests>=2.26.0->vllm) (3.18)
+Requirement already satisfied: joblib>=1.2.0 in ./flashrag_env/lib/python3.10/site-packages (from scikit-learn>=0.22.0->sentence-transformers) (1.5.3)
+Collecting threadpoolctl>=3.1.0
+  Using cached threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Collecting httpx-sse>=0.4
+  Using cached httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)
+Collecting pyjwt[crypto]>=2.10.1
+  Downloading pyjwt-2.13.0-py3-none-any.whl (31 kB)
+Collecting sse-starlette>=1.6.1
+  Downloading sse_starlette-3.4.4-py3-none-any.whl (16 kB)
+Requirement already satisfied: exceptiongroup>=1.0.2 in ./flashrag_env/lib/python3.10/site-packages (from anyio<5,>=3.5.0->anthropic>=0.71.0->vllm) (1.3.1)
+Requirement already satisfied: cuda-pathfinder>=1.4.2 in ./flashrag_env/lib/python3.10/site-packages (from cuda-bindings->humming-kernels[cu13]==0.1.2->vllm) (1.5.5)
+Collecting dnspython>=2.0.0
+  Using cached dnspython-2.8.0-py3-none-any.whl (331 kB)
+Collecting rich-toolkit>=0.14.8
+  Downloading rich_toolkit-0.20.0-py3-none-any.whl (35 kB)
+Collecting tomli>=2.0.0
+  Using cached tomli-2.4.1-py3-none-any.whl (14 kB)
+Collecting fastapi-cloud-cli>=0.1.1
+  Downloading fastapi_cloud_cli-0.19.0-py3-none-any.whl (38 kB)
+Requirement already satisfied: httpcore==1.* in ./flashrag_env/lib/python3.10/site-packages (from httpx<1,>=0.25.0->anthropic>=0.71.0->vllm) (1.0.9)
+Requirement already satisfied: h11>=0.16 in ./flashrag_env/lib/python3.10/site-packages (from httpcore==1.*->httpx<1,>=0.25.0->anthropic>=0.71.0->vllm) (0.16.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./flashrag_env/lib/python3.10/site-packages (from jinja2->humming-kernels[cu13]==0.1.2->vllm) (3.0.3)
+Requirement already satisfied: rpds-py>=0.25.0 in ./flashrag_env/lib/python3.10/site-packages (from jsonschema>=4.21.1->mistral_common[image]>=1.11.2->vllm) (0.30.0)
+Requirement already satisfied: referencing>=0.28.4 in ./flashrag_env/lib/python3.10/site-packages (from jsonschema>=4.21.1->mistral_common[image]>=1.11.2->vllm) (0.37.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./flashrag_env/lib/python3.10/site-packages (from jsonschema>=4.21.1->mistral_common[image]>=1.11.2->vllm) (2025.9.1)
+Collecting pycountry>=23
+  Downloading pycountry-26.2.16-py3-none-any.whl (8.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.0/8.0 MB 19.4 MB/s eta 0:00:00
+Collecting python-dotenv>=0.21.0
+  Using cached python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+Collecting cryptography>=3.4.0
+  Downloading cryptography-48.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.7/4.7 MB 21.3 MB/s eta 0:00:00
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./flashrag_env/lib/python3.10/site-packages (from sympy>=1.13.3->torch==2.11.0->vllm) (1.3.0)
+Requirement already satisfied: shellingham>=1.3.0 in ./flashrag_env/lib/python3.10/site-packages (from typer>=0.9.0->fastsafetensors>=0.2.2->vllm) (1.5.4)
+Requirement already satisfied: rich>=13.8.0 in ./flashrag_env/lib/python3.10/site-packages (from typer>=0.9.0->fastsafetensors>=0.2.2->vllm) (15.0.0)
+Requirement already satisfied: httptools>=0.8.0 in ./flashrag_env/lib/python3.10/site-packages (from uvicorn[standard]>=0.12.0->fastapi[standard]>=0.115.0->vllm) (0.8.0)
+Collecting uvloop>=0.15.1
+  Downloading uvloop-0.22.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.7/3.7 MB 21.2 MB/s eta 0:00:00
+Requirement already satisfied: websockets>=10.4 in ./flashrag_env/lib/python3.10/site-packages (from uvicorn[standard]>=0.12.0->fastapi[standard]>=0.115.0->vllm) (16.0)
+Collecting nvidia-nvvm
+  Downloading nvidia_nvvm-13.3.33-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (69.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.3/69.3 MB 11.8 MB/s eta 0:00:00
+Collecting nvidia-cuda-crt
+  Downloading nvidia_cuda_crt-13.3.33-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (157 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 157.3/157.3 KB 12.3 MB/s eta 0:00:00
+Collecting cffi>=2.0.0
+  Using cached cffi-2.0.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (216 kB)
+Collecting cuda-core~=1.0.0
+  Downloading cuda_core-1.0.1-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (5.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 23.1 MB/s eta 0:00:00
+Collecting detect-installer>=0.1.0
+  Downloading detect_installer-0.1.0-py3-none-any.whl (4.5 kB)
+Collecting rignore>=0.5.1
+  Downloading rignore-0.7.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (959 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 959.8/959.8 KB 22.2 MB/s eta 0:00:00
+Collecting sentry-sdk>=2.20.0
+  Downloading sentry_sdk-2.61.1-py3-none-any.whl (483 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 483.7/483.7 KB 20.6 MB/s eta 0:00:00
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./flashrag_env/lib/python3.10/site-packages (from rich>=13.8.0->typer>=0.9.0->fastsafetensors>=0.2.2->vllm) (4.2.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./flashrag_env/lib/python3.10/site-packages (from rich>=13.8.0->typer>=0.9.0->fastsafetensors>=0.2.2->vllm) (2.20.0)
+Collecting pycparser
+  Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+Collecting backports.strenum
+  Downloading backports_strenum-1.3.1-py3-none-any.whl (8.3 kB)
+Requirement already satisfied: mdurl~=0.1 in ./flashrag_env/lib/python3.10/site-packages (from markdown-it-py>=2.2.0->rich>=13.8.0->typer>=0.9.0->fastsafetensors>=0.2.2->vllm) (0.1.2)
+Installing collected packages: z3-solver, torchaudio, supervisor, py-cpuinfo, nvidia-ml-py, nvidia-cusparselt-cu13, uvloop, triton, tomli, tokenspeed-triton, threadpoolctl, tabulate, setproctitle, sentry-sdk, sentencepiece, rignore, pyzmq, python-json-logger, python-dotenv, pyjwt, pyelftools, pycparser, pycountry, pybase64, protobuf, prometheus_client, partial-json-parser, outlines_core, opentelemetry-api, opencv-python-headless, nvidia-nvvm, nvidia-nccl-cu13, nvidia-cudnn-frontend, nvidia-cuda-crt, nvidia-cuda-cccl, nvidia-cublas, numba, ninja, msgspec, ml-dtypes, loguru, llguidance, lark, jmespath, interegular, ijson, httpx-sse, grpcio, flashinfer-cubin, fastar, einops, docstring-parser, dnspython, diskcache, detect-installer, cuda-tile, cloudpickle, cbor2, blake3, backports.strenum, astor, apache-tvm-ffi, scikit-learn, opentelemetry-semantic-conventions, opentelemetry-proto, nvidia-cudnn-cu13, nvidia-cuda-nvcc, googleapis-common-protos, gguf, email-validator, depyf, cuda-core, cffi, watchfiles, rich-toolkit, pydantic-settings, pydantic-extra-types, opentelemetry-sdk, opentelemetry-exporter-otlp-proto-common, openai-harmony, lm-format-enforcer, cuda-python, cryptography, torch, sse-starlette, prometheus-fastapi-instrumentator, opentelemetry-semantic-conventions-ai, opentelemetry-exporter-otlp-proto-http, opentelemetry-exporter-otlp-proto-grpc, nvidia-cutlass-dsl-libs-base, fastsafetensors, anthropic, torchvision, torch-c-dlpack-ext, opentelemetry-exporter-otlp, nvidia-cutlass-dsl-libs-cu13, nvidia-cutlass-dsl, model-hosting-container-standards, mistral_common, mcp, humming-kernels, fastapi-cloud-cli, fastapi-cli, tokenspeed-mla, tilelang, quack-kernels, flashinfer-python, xgrammar, sentence-transformers, compressed-tensors, vllm
+  Attempting uninstall: nvidia-cusparselt-cu13
+    Found existing installation: nvidia-cusparselt-cu13 0.8.1
+    Uninstalling nvidia-cusparselt-cu13-0.8.1:
+      Successfully uninstalled nvidia-cusparselt-cu13-0.8.1
+  Attempting uninstall: triton
+    Found existing installation: triton 3.7.0
+    Uninstalling triton-3.7.0:
+      Successfully uninstalled triton-3.7.0
+  Attempting uninstall: protobuf
+    Found existing installation: protobuf 7.35.0
+    Uninstalling protobuf-7.35.0:
+      Successfully uninstalled protobuf-7.35.0
+  Attempting uninstall: nvidia-nccl-cu13
+    Found existing installation: nvidia-nccl-cu13 2.29.7
+    Uninstalling nvidia-nccl-cu13-2.29.7:
+      Successfully uninstalled nvidia-nccl-cu13-2.29.7
+  Attempting uninstall: nvidia-cublas
+    Found existing installation: nvidia-cublas 13.1.1.3
+    Uninstalling nvidia-cublas-13.1.1.3:
+      Successfully uninstalled nvidia-cublas-13.1.1.3
+  Attempting uninstall: numba
+    Found existing installation: numba 0.65.1
+    Uninstalling numba-0.65.1:
+      Successfully uninstalled numba-0.65.1
+  Attempting uninstall: nvidia-cudnn-cu13
+    Found existing installation: nvidia-cudnn-cu13 9.20.0.48
+    Uninstalling nvidia-cudnn-cu13-9.20.0.48:
+      Successfully uninstalled nvidia-cudnn-cu13-9.20.0.48
+  Attempting uninstall: torch
+    Found existing installation: torch 2.12.0
+    Uninstalling torch-2.12.0:
+      Successfully uninstalled torch-2.12.0
+Successfully installed anthropic-0.105.2 apache-tvm-ffi-0.1.9 astor-0.8.1 backports.strenum-1.3.1 blake3-1.0.8 cbor2-6.1.2 cffi-2.0.0 cloudpickle-3.1.2 compressed-tensors-0.15.0.1 cryptography-48.0.0 cuda-core-1.0.1 cuda-python-13.3.1 cuda-tile-1.4.0 depyf-0.20.0 detect-installer-0.1.0 diskcache-5.6.3 dnspython-2.8.0 docstring-parser-0.18.0 einops-0.8.2 email-validator-2.3.0 fastapi-cli-0.0.24 fastapi-cloud-cli-0.19.0 fastar-0.11.0 fastsafetensors-0.3.2 flashinfer-cubin-0.6.11.post2 flashinfer-python-0.6.11.post2 gguf-0.19.0 googleapis-common-protos-1.75.0 grpcio-1.81.0 httpx-sse-0.4.3 humming-kernels-0.1.2 ijson-3.5.0 interegular-0.3.3 jmespath-1.1.0 lark-1.2.2 llguidance-1.7.6 lm-format-enforcer-0.11.3 loguru-0.7.3 mcp-1.27.2 mistral_common-1.11.3 ml-dtypes-0.5.4 model-hosting-container-standards-0.1.15 msgspec-0.21.1 ninja-1.13.0 numba-0.65.0 nvidia-cublas-13.1.0.3 nvidia-cuda-cccl-13.3.3.3.1 nvidia-cuda-crt-13.3.33 nvidia-cuda-nvcc-13.3.33 nvidia-cudnn-cu13-9.19.0.56 nvidia-cudnn-frontend-1.18.0 nvidia-cusparselt-cu13-0.8.0 nvidia-cutlass-dsl-4.5.2 nvidia-cutlass-dsl-libs-base-4.5.2 nvidia-cutlass-dsl-libs-cu13-4.5.2 nvidia-ml-py-13.610.43 nvidia-nccl-cu13-2.28.9 nvidia-nvvm-13.3.33 openai-harmony-0.0.8 opencv-python-headless-4.13.0.92 opentelemetry-api-1.42.1 opentelemetry-exporter-otlp-1.42.1 opentelemetry-exporter-otlp-proto-common-1.42.1 opentelemetry-exporter-otlp-proto-grpc-1.42.1 opentelemetry-exporter-otlp-proto-http-1.42.1 opentelemetry-proto-1.42.1 opentelemetry-sdk-1.42.1 opentelemetry-semantic-conventions-0.63b1 opentelemetry-semantic-conventions-ai-0.5.1 outlines_core-0.2.14 partial-json-parser-0.2.1.1.post7 prometheus-fastapi-instrumentator-8.0.0 prometheus_client-0.25.0 protobuf-6.33.6 py-cpuinfo-9.0.0 pybase64-1.4.3 pycountry-26.2.16 pycparser-3.0 pydantic-extra-types-2.11.1 pydantic-settings-2.14.1 pyelftools-0.33 pyjwt-2.13.0 python-dotenv-1.2.2 python-json-logger-4.1.0 pyzmq-27.1.0 quack-kernels-0.5.0 rich-toolkit-0.20.0 rignore-0.7.6 scikit-learn-1.7.2 sentence-transformers-5.5.1 sentencepiece-0.2.1 sentry-sdk-2.61.1 setproctitle-1.3.7 sse-starlette-3.4.4 supervisor-4.3.0 tabulate-0.10.0 threadpoolctl-3.6.0 tilelang-0.1.9 tokenspeed-mla-0.1.2 tokenspeed-triton-3.7.10.post20260531 tomli-2.4.1 torch-2.11.0 torch-c-dlpack-ext-0.1.5 torchaudio-2.11.0 torchvision-0.26.0 triton-3.6.0 uvloop-0.22.1 vllm-0.22.0 watchfiles-1.2.0 xgrammar-0.2.1 z3-solver-4.15.4.0

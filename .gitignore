@@ -34,7 +34,7 @@ venv
 ENV/
 env.bak
 venv.bak
-
+flashrag_env
 # --- IDEs ---
 .vscode/
 .idea/
@@ -47,7 +47,8 @@ logs/
 *.log
 model_cache/
 *.pdf
-
+output/
+*.index
 # dependencies
 /node_modules
 /.pnp
