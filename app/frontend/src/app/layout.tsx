@@ -2,8 +2,8 @@ import "./global.css";
 import Sidebar from "../components/Sidebar";
 
 export const metadata = {
-  title: "News RAG - Stock DSS",
-  description: "Hệ thống hỗ trợ quyết định tin tức chứng khoán",
+  title: "News RAG - Dashboard",
+  description: "Hệ thống hỗ trợ truy vấn tin tức",
 };
 
 export default function RootLayout({
@@ -12,13 +12,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    // Đừng quên suppressHydrationWarning ở đây nhé
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased font-sans">
-        {/* SỬA ĐOẠN NÀY: Đổi min-h-screen thành h-screen và thêm overflow-hidden */}
+        {/* Khung cố định toàn màn hình */}
         <div className="flex h-screen overflow-hidden bg-slate-50">
           <Sidebar role="ADMIN" />
           
-          {/* SỬA ĐOẠN NÀY: Thêm overflow-y-auto để phần nội dung tự cuộn độc lập */}
+          {/* Phần nội dung chính tự cuộn độc lập */}
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             {children}
           </main>

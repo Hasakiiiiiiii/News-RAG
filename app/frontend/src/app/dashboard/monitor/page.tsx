@@ -21,6 +21,14 @@ export default function PipelineMonitor() {
   }, []);
 
   if (!data) return <div className="p-8">Đang tải dữ liệu giám sát...</div>;
+  if (data.status === "error") {
+    return (
+      <div className="p-8 bg-red-50 text-red-600 min-h-screen">
+        <h2 className="text-xl font-bold mb-2">Lỗi kết nối Backend</h2>
+        <p>{data.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-[#f8fafc] min-h-screen space-y-8">
@@ -37,7 +45,7 @@ export default function PipelineMonitor() {
 
       {/* Dãy Card trạng thái dịch vụ */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {Object.entries(data.services).map(([key, value]: any) => (
+        {Object.entries(data?.services || {}).map(([key, value]: any) => (
           <div key={key} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{key}</p>
@@ -132,7 +140,5 @@ export default function PipelineMonitor() {
         </div>
       </div>
     </div>
-  );
-}
   );
 }

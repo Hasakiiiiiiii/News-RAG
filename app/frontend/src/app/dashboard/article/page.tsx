@@ -43,18 +43,21 @@ export default function ArticleExplorerPage() {
       const res = await fetch(`http://localhost:8000/articles?q=${searchQuery}&limit=${limit}&offset=${offset}`);
       
       if (res.ok) {
-        const data = await res.json();
-        setArticles(data);
+        // Đọc json trả về (bây giờ sẽ chứa cả mảng data và total_records)
+        const json = await res.json();
         
-        // Logic tính tổng số trang đơn giản dựa trên độ dài mảng trả về
-        if (data.length < limit) {
-          setTotalPages(page);
-        } else {
-          setTotalPages(page + 1);
-        }
+        // 1. Cập nhật mảng bài báo (lấy từ json.data)
+        setArticles(json.data || []);
+        
+        // 2. Tính toán tổng số trang chính xác tuyệt đối
+        const calculatedTotalPages = Math.ceil((json.total_records || 0) / limit);
+        
+        // Nếu không có bài nào, vẫn hiển thị ít nhất là trang 1 để không bị lỗi UI
+        setTotalPages(calculatedTotalPages === 0 ? 1 : calculatedTotalPages);
       }
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu bài báo:", error);
+      setArticles([]); // Xóa dữ liệu cũ nếu lỗi
     } finally {
       setIsLoading(false);
     }
@@ -275,8 +278,7 @@ export default function ArticleExplorerPage() {
         {!isLoading && articles.length > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between rounded-b-2xl">
             <span className="text-sm text-slate-500 font-medium">
-              Trang <strong className="text-slate-800">{page}</strong> 
-              {totalPages > page ? ` / ${totalPages}+` : ` / ${totalPages}`}
+              Trang <strong className="text-slate-800">{page}</strong> / {totalPages}
             </span>
             <div className="flex gap-2">
               <button 
@@ -288,7 +290,8 @@ export default function ArticleExplorerPage() {
               </button>
               <button 
                 onClick={() => setPage(p => p + 1)}
-                disabled={articles.length < limit}
+                // Nút Next sẽ bị mờ đi nếu đang ở trang cuối cùng
+                disabled={page >= totalPages} 
                 className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 <ChevronRight size={18} />
