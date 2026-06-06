@@ -18,7 +18,7 @@ load_dotenv()
 
 # Import core components
 from search.engine import Pipeline
-from search.generator import generator_registry
+from search.generator import generator_registry # nho go comment
 from search.retriever import Retriever
 
 logging.basicConfig(level=logging.INFO)
@@ -222,9 +222,10 @@ async def list_articles(q: Optional[str] = None, limit: int = 10, offset: int = 
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Câu query chuẩn Data Warehouse: Kết nối Fact và các Dim
+        # Đã thêm COUNT(*) OVER() AS total_count vào đây
         base_query = """
             SELECT
+                COUNT(*) OVER() AS total_count,
                 f.article_id AS id,
                 f.title,
                 m.url,
@@ -258,7 +259,18 @@ async def list_articles(q: Optional[str] = None, limit: int = 10, offset: int = 
             """
             cur.execute(query, (limit, offset))
 
-        return cur.fetchall()
+        records = cur.fetchall()
+        
+        # Bóc tách total_count để trả về định dạng Object cho Frontend
+        total_records = records[0]['total_count'] if records else 0
+        for row in records:
+            row.pop('total_count', None)
+
+        # Trả về Object có chứa key "data"
+        return {
+            "data": records,
+            "total_records": total_records
+        }
     finally:
         cur.close()
         conn.close()

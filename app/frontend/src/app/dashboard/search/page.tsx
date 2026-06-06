@@ -42,16 +42,20 @@ export default function SearchPage() {
       
       if (!res.ok) throw new Error("Lỗi kết nối API PostgreSQL");
       
-      const data = await res.json();
+      const json = await res.json();
       
-      const mappedResults = data.map((item: any) => {
+      // ✅ Bóc tách mảng bài báo từ thuộc tính .data
+      const articlesArray = json.data || []; 
+      
+      // ✅ Chạy map trên mảng articlesArray vừa lấy được
+      const mappedResults = articlesArray.map((item: any) => {
         return {
           id: item.id,
           title: item.title,
-          source: item.source || 'Unknown',  // Lấy thẳng domain từ dim_source
-          date: item.published_date || 'N/A', // Lấy ngày chuẩn từ dim_time
-          author: item.author || 'Tác giả',   // Lấy tên thật từ dim_author
-          snippet: item.snippet || 'Không có tóm tắt...', // Lấy 150 chữ từ dim_content
+          source: item.source || 'Unknown',
+          date: item.published_date || 'N/A',
+          author: item.author || 'Tác giả',
+          snippet: item.snippet || 'Không có tóm tắt...',
           url: item.url || '#'
         };
       });
